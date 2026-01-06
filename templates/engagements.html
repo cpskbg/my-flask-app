@@ -1,0 +1,459 @@
+{% extends "base.html" %}
+
+{% block title %}Suivi des Engagements - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% import "macros/nature_icons.html" as nature_macros %}
+
+{% block extra_css %}
+<style>
+    /* Styles pour le sélecteur d'année */
+    .year-selector-nav {
+        margin-top: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 0.5rem;
+        border: 1px solid #dee2e6;
+    }
+    
+    .year-nav-btn {
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        color: #495057;
+        transition: all 0.2s ease-in-out;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .year-nav-btn:hover {
+        background-color: #f1f3f5;
+        color: #0d6efd;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .year-current-badge {
+        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+        color: white;
+        font-size: 0.9rem;
+        padding: 0.35rem 1rem;
+        border-radius: 50rem;
+        font-weight: 600;
+        box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
+        min-width: 80px;
+        display: inline-block;
+        text-align: center;
+    }
+    
+    .year-selector-container {
+        margin-top: 0.5rem;
+        padding: 0.5rem 0;
+    }
+    
+    .year-selector-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .year-pill {
+        border-radius: 50rem;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        color: #495057;
+        transition: all 0.2s ease-in-out;
+        text-decoration: none;
+    }
+    
+    .year-pill:hover {
+        background-color: #e9ecef;
+        color: #212529;
+    }
+    
+    .year-pill--active {
+        background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
+        color: white;
+        border-color: #0d6efd;
+        box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
+    }
+    
+    .year-pill--active:hover {
+        color: white;
+        opacity: 0.9;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Header de page avec style moderne -->
+<div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded-3" style="background: linear-gradient(135deg, rgba(255, 235, 59, 0.15) 0%, rgba(0, 188, 212, 0.15) 100%); border: 1px solid rgba(255, 235, 59, 0.3); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: linear-gradient(135deg, #FFEB3B 0%, #00BCD4 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(255, 235, 59, 0.4);">
+            <i class="fas fa-file-invoice-dollar" style="color: #fff; font-size: 1.4rem;"></i>
+        </div>
+        <div>
+            <h4 class="mb-0" style="font-weight: 700; color: #000; letter-spacing: 0.5px; font-size: 1.4rem;">Suivi des Engagements</h4>
+            <div class="d-flex align-items-center gap-2 mt-2 year-selector-nav">
+                {% if prev_year %}
+                <a href="{{ url_for('engagements', type=type_depense, nature=nature_filter, year=prev_year) }}" class="btn btn-sm year-nav-btn">
+                    <i class="fas fa-chevron-left me-1"></i> {{ prev_year }}
+                </a>
+                {% endif %}
+                
+                <span class="badge year-current-badge">
+                    <i class="fas fa-calendar-day me-1"></i>
+                    {{ current_year }}
+                </span>
+                
+                {% if next_year %}
+                <a href="{{ url_for('engagements', type=type_depense, nature=nature_filter, year=next_year) }}" class="btn btn-sm year-nav-btn">
+                    {{ next_year }} <i class="fas fa-chevron-right ms-1"></i>
+                </a>
+                {% endif %}
+                
+                <!-- Liste des années sous forme de pills (style Budget Detail) -->
+                {% if years %}
+                <div class="d-flex flex-wrap align-items-center gap-2 ms-2 year-selector-container">
+                    <span class="text-muted small year-selector-label">
+                        <i class="far fa-calendar-alt me-1"></i>Années :
+                    </span>
+                    <a href="{{ url_for('engagements', type=type_depense, nature=nature_filter if nature_filter else none) }}"
+                       class="btn btn-sm year-pill {% if not current_year %}year-pill--active{% endif %}">
+                        Toutes
+                    </a>
+                    {% for y in years %}
+                    <a href="{{ url_for('engagements', type=type_depense, nature=nature_filter if nature_filter else none, year=y) }}"
+                       class="btn btn-sm year-pill {% if current_year == y %}year-pill--active{% endif %}"
+                       title="Voir l'année {{ y }}">
+                        {{ y }}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        {% if session.get('user_id') %}
+            {% set current_user = get_user_by_id(session.get('user_id')) %}
+            {% if current_user and current_user.role != 'user' %}
+                {% if type_depense == 'bon_commande' %}
+                <a href="{{ url_for('add_bon_commande') }}" class="btn btn-primary d-flex align-items-center gap-2" style="padding: 8px 16px; font-size: 0.9rem; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); transition: all 0.3s ease; text-decoration: none; white-space: nowrap;">
+                    <i class="fas fa-plus" style="font-size: 0.95rem;"></i>
+                    <span>Nouveau Bon de Commande</span>
+                </a>
+                {% else %}
+                <a href="{{ url_for('add_indemnites') }}" class="btn btn-success d-flex align-items-center gap-2" style="padding: 8px 16px; font-size: 0.9rem; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3); transition: all 0.3s ease; text-decoration: none; white-space: nowrap;">
+                    <i class="fas fa-plus" style="font-size: 0.95rem;"></i>
+                    <span>Nouvelles Indemnités</span>
+                </a>
+                {% endif %}
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-header py-2" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <h6 class="mb-0" style="color: #000; font-weight: 700;"><i class="fas fa-filter me-2"></i>Filtres</h6>
+    </div>
+    <div class="card-body">
+        <form autocomplete="off" method="GET" action="{{ url_for('engagements') }}" class="row g-3">
+            <div class="col-md-5">
+                <label class="form-label"><i class="fas fa-list me-2"></i>Type de Dépense</label>
+                <select name="type" class="form-select" onchange="this.form.submit()">
+                    <option value="bon_commande" {% if type_depense == 'bon_commande' %}selected{% endif %}>Bon de Commande</option>
+                    <option value="indemnites" {% if type_depense == 'indemnites' %}selected{% endif %}>Indemnités de Déplacement</option>
+                </select>
+            </div>
+            
+            <!-- Sélecteur d'année (unifié - voir en-tête) -->
+            {% if type_depense == 'bon_commande' %}
+            <div class="col-md-6">
+                <label class="form-label"><i class="fas fa-tag me-2"></i>Nature de Prestation</label>
+                <select name="nature" class="form-select" onchange="this.form.submit()">
+                    <option value="">Toutes les natures</option>
+                    {% for budget in budgets %}
+                    <option value="{{ budget.nature }}" {% if nature_filter == budget.nature %}selected{% endif %}>{{ nature_macros.icon(budget.nature) }} {{ budget.nature }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Cartes de statistiques globales -->
+{% if type_depense == 'bon_commande' %}
+<div class="row mb-4">
+    <div class="col-12 mb-3">
+        <h5 class="text-muted">Statistiques Globales des Engagements ({{ annee_courante }})</h5>
+    </div>
+    <!-- Total Engagé -->
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h6 class="card-title"><i class="fas fa-file-invoice-dollar me-2"></i>Total Engagé</h6>
+                <h4 class="mb-0">{{ "%.2f"|format(stats.total_engage) }} DH</h4>
+            </div>
+        </div>
+    </div>
+    <!-- Total Visé -->
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h6 class="card-title"><i class="fas fa-check-circle me-2"></i>Total Visé</h6>
+                <h4 class="mb-0">{{ "%.2f"|format(stats.total_vise) }} DH</h4>
+            </div>
+        </div>
+    </div>
+    <!-- Total en Attente -->
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <h6 class="card-title"><i class="fas fa-hourglass-half me-2"></i>En Attente de Visa</h6>
+                <h4 class="mb-0">{{ "%.2f"|format(stats.total_en_attente) }} DH</h4>
+            </div>
+        </div>
+    </div>
+    <!-- Total Réglé -->
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h6 class="card-title"><i class="fas fa-hand-holding-usd me-2"></i>Total Réglé</h6>
+                <h4 class="mb-0">{{ "%.2f"|format(stats.total_regle) }} DH</h4>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Tableau de bord des budgets -->
+{% if type_depense == 'bon_commande' %}
+<div class="row mb-4">
+    {% for budget in budgets %}
+    <div class="col-md-4 mb-3">
+        <div class="card {% if budget.est_verrouille %}border-danger{% elif budget.budget_restant < (budget.budget_total * 0.2) %}border-warning{% else %}border-success{% endif %}">
+            <div class="card-body">
+                <h6 class="card-title text-truncate" title="{{ budget.nature }}">
+                    {% if budget.est_verrouille %}
+                    <i class="fas fa-lock text-danger me-2"></i>
+                    {% elif budget.budget_restant < (budget.budget_total * 0.2) %}
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    {% else %}
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    {% endif %}
+                    {{ budget.nature }}
+                </h6>
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small>Budget Initial:</small>
+                        <strong>{{ "%.2f"|format(budget.budget_total) }} DH</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <small>Consommé:</small>
+                        <span class="text-danger">{{ "%.2f"|format(budget.budget_consomme) }} DH</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <small>Restant:</small>
+                        <strong class="{% if budget.est_verrouille %}text-danger{% elif budget.budget_restant < (budget.budget_total * 0.2) %}text-warning{% else %}text-success{% endif %}">
+                            {{ "%.2f"|format(budget.budget_restant) }} DH
+                        </strong>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        {% set percent = (budget.budget_consomme / budget.budget_total * 100) if budget.budget_total > 0 else 0 %}
+                        <div class="progress-bar {% if percent >= 100 %}bg-danger{% elif percent >= 80 %}bg-warning{% else %}bg-success{% endif %}" 
+                             role="progressbar" 
+                             style="width: {{ percent }}%"
+                             aria-valuenow="{{ percent }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            {{ "%.1f"|format(percent) }}%
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <a href="{{ url_for('historique_budget', budget_id=budget.id) }}" class="btn btn-sm btn-outline-primary w-100">
+                            <i class="fas fa-history me-1"></i>Historique
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Liste des engagements -->
+<div class="card shadow-sm">
+    <div class="card-header py-2" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <h5 class="mb-0" style="color: #000; font-weight: 700;">
+            <i class="fas fa-list me-2"></i>
+            {% if type_depense == 'bon_commande' %}
+            Liste des Bons de Commande
+            {% else %}
+            Liste des Indemnités de Déplacement
+            {% endif %}
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if engagements %}
+        <div style="overflow-x: hidden;">
+            {% if type_depense == 'bon_commande' %}
+            <table class="table table-hover table-sm mb-0" style="table-layout: fixed; width: 100%;">
+                <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <tr>
+                        <th style="width: 10%; font-size: 1rem; padding: 12px 8px; font-weight: 700; text-align: center; vertical-align: middle; color: #000;">N° BC</th>
+                        <th style="width: 12%; font-size: 1rem; padding: 12px 8px; font-weight: 700; text-align: center; vertical-align: middle; color: #000;">DATE<br><small style="font-size: 0.75rem; color: #000;">ENGAGEMENT</small></th>
+                        <th style="width: 22%; font-size: 1rem; padding: 12px 8px; font-weight: 700; text-align: center; vertical-align: middle; color: #000;">NATURE</th>
+                        <th style="width: 18%; font-size: 1rem; padding: 12px 8px; font-weight: 700; text-align: center; vertical-align: middle; color: #000;">BÉNÉFICIAIRE</th>
+                        <th style="width: 12%; font-size: 1rem; padding: 12px 8px; font-weight: 700; text-align: center; vertical-align: middle; color: #000;">MONTANT<br><small style="font-size: 0.75rem; color: #000;">(MAD)</small></th>
+                        <th style="width: 10%; font-size: 1rem; padding: 12px 8px; font-weight: 700; text-align: center; vertical-align: middle; color: #000;">DÉCISION</th>
+                        <th style="width: 8%; font-size: 1rem; padding: 12px 8px; font-weight: 700; text-align: center; vertical-align: middle; color: #000;">STATUT</th>
+                        <th style="width: 18%; font-size: 1rem; padding: 12px 8px; font-weight: 700; text-align: center; vertical-align: middle; color: #000;">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bc in engagements %}
+                    <tr>
+                        <td><strong>{{ bc.numero_bc }}</strong></td>
+                        <td>{{ format_datetime(bc.date_engagement, '%d/%m/%Y') }}</td>
+                        <td>
+                            {{ bc.nature_prestation }}
+                            {% if bc.sous_categorie %}
+                            <br><small class="text-muted">{{ bc.sous_categorie }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ bc.beneficiaire }}</td>
+                        <td><strong>{{ "%.2f"|format(bc.montant_engage) }} DH</strong></td>
+                        <td>
+                            {% if bc.decision_controle == 'Visa' %}
+                            <span class="badge bg-success">Visa</span>
+                            {% else %}
+                            <span class="badge bg-warning">Retour avec observations</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if bc.date_reglement %}
+                            <span class="badge bg-success">Réglé</span>
+                            {% elif bc.controle_tresorier == 'Visa' %}
+                            <span class="badge bg-info">Visa Trésorier</span>
+                            {% elif bc.decision_controle == 'Visa' %}
+                            <span class="badge bg-primary">En cours</span>
+                            {% else %}
+                            <span class="badge bg-warning">En attente</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if session.get('user_id') %}
+                                {% set current_user = get_user_by_id(session.get('user_id')) %}
+                                {% if current_user and current_user.role != 'user' %}
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ url_for('edit_bon_commande', bc_id=bc.id) }}" class="btn btn-outline-primary" title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form autocomplete="off" method="POST" action="{{ url_for('delete_bon_commande', bc_id=bc.id) }}" style="display: inline;" onsubmit="return confirm('Supprimer ce bon de commande ?')">
+                                            <button type="submit" class="btn btn-outline-danger" title="Supprimer">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                {% else %}
+                                    <!-- Badge Consultation pour les utilisateurs simples -->
+                                    <span class="badge" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.4); display: inline-flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.3px; border: 2px solid rgba(255, 255, 255, 0.3); white-space: nowrap;">
+                                        <i class="fas fa-eye" style="font-size: 1rem;"></i>
+                                        <span>Consultation</span>
+                                    </span>
+                                {% endif %}
+                            {% endif %}
+                        </td>                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <!-- Table pour indemnités -->
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Objet</th>
+                        <th>Période</th>
+                        <th>Type Engagement</th>
+                        <th>N°</th>
+                        <th>Montant Total</th>
+                        <th>Bénéficiaires</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ind in engagements %}
+                    <tr>
+                        <td>{{ ind.objet }}</td>
+                        <td>{{ ind.periode_deplacement }}</td>
+                        <td>{{ ind.type_engagement }}</td>
+                        <td>{{ ind.numero_engagement }}</td>
+                        <td><strong>{{ "%.2f"|format(ind.montant_engage) }} DH</strong></td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#benefModal{{ ind.id }}">
+                                <i class="fas fa-users me-1"></i>{{ ind.beneficiaires|length }} bénéficiaire(s)
+                            </button>
+                            
+                            <!-- Modal pour afficher les bénéficiaires -->
+                            <div class="modal fade" id="benefModal{{ ind.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Bénéficiaires</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Nom</th>
+                                                        <th>Prénom</th>
+                                                        <th>Grade</th>
+                                                        <th>Montant</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for ben in ind.beneficiaires %}
+                                                    <tr>
+                                                        <td>{{ ben.nom }}</td>
+                                                        <td>{{ ben.prenom }}</td>
+                                                        <td>{{ ben.grade }}</td>
+                                                        <td>{{ "%.2f"|format(ben.montant) }} DH</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">Aucun engagement trouvé</h5>
+            <p class="text-muted">Commencez par ajouter votre premier engagement.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+
+{% block title %}Articles en Stock Bas - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Stock Bas</li>
+{% endblock %}
+
+{% block content %}
+
+<!-- Header de page avec style moderne -->
+<div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded-3" style="background: linear-gradient(135deg, rgba(255, 235, 59, 0.15) 0%, rgba(0, 188, 212, 0.15) 100%); border: 1px solid rgba(255, 235, 59, 0.3); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: linear-gradient(135deg, #FFEB3B 0%, #00BCD4 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(255, 235, 59, 0.4);">
+            <i class="fas fa-exclamation-triangle" style="color: #fff; font-size: 1.4rem;"></i>
+        </div>
+        <h4 class="mb-0" style="font-weight: 700; color: #000; letter-spacing: 0.5px; font-size: 1.4rem; text-shadow: 0 2px 4px rgba(255, 255, 255, 0.5);">Articles en Stock Bas</h4>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('items') }}" class="btn btn-primary d-flex align-items-center gap-2" style="padding: 8px 16px; font-size: 0.9rem; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); transition: all 0.3s ease; text-decoration: none; white-space: nowrap;">
+            <i class="fas fa-box" style="font-size: 0.95rem;"></i>
+            <span>Tous les Articles</span>
+        </a>
+    </div>
+</div>
+
+<!-- Filtre par Nature de Prestation -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <form autocomplete="off" method="GET" class="row g-2">
+            <!-- Filtre par Nature de prestation -->
+            <div class="col-md-10">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-info text-white">
+                        <i class="fas fa-filter"></i>
+                    </span>
+                    <select class="form-select" name="category" onchange="this.form.submit()">
+                        <option value="">Toutes les natures de prestation</option>
+                        {% for nature in all_budget_natures %}
+                        <option value="{{ nature }}" {{ 'selected' if category_filter == nature }}>
+                            {{ nature }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Bouton Réinitialiser -->
+            <div class="col-md-2">
+                <a href="{{ url_for('low_stock') }}" class="btn btn-secondary btn-sm w-100" title="Réinitialiser">
+                    <i class="fas fa-redo me-1"></i>Réinitialiser
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if low_stock_items.items %}
+<!-- Modal Stock Critique -->
+<div class="modal fade" id="stockCritiqueModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 380px;">
+        <div class="modal-content" style="border: none; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4); background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
+            <!-- En-tête avec dégradé bleu -->
+            <div class="modal-header" style="background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #2563eb 100%); border: none; padding: 12px 15px; position: relative; overflow: hidden;">
+                <!-- Effet de brillance animé -->
+                <div style="position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent); animation: shine 3s infinite;"></div>
+                
+                <div style="width: 100%; position: relative; z-index: 1;">
+                    <div style="text-align: center; margin-bottom: 5px;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #fff; animation: pulse 2s ease-in-out infinite; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));"></i>
+                    </div>
+                    <h4 class="modal-title" style="color: #fff; text-align: center; font-weight: 800; margin: 0; font-size: 1rem; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); letter-spacing: 0.5px;">
+                        ⚠️ ALERTE STOCK CRITIQUE
+                    </h4>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="position: absolute; top: 8px; right: 8px; z-index: 2; filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5)); font-size: 0.8rem;"></button>
+            </div>
+            
+            <!-- Corps du modal avec fond sombre -->
+            <div class="modal-body" style="padding: 15px; background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);">
+                <!-- Badge principal avec dégradé bleu -->
+                <div style="text-align: center; margin-bottom: 12px;">
+                    <div style="background: linear-gradient(135deg, #93c5fd 0%, #60a5fa 100%); padding: 12px; border-radius: 10px; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4); position: relative; overflow: hidden;">
+                        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%); animation: shimmer 2s infinite;"></div>
+                        <h2 style="color: #1a1a2e; font-weight: 900; margin: 0; font-size: 2.2rem; text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.3); position: relative; z-index: 1;">
+                            {{ low_stock_items.total }}
+                        </h2>
+                        <p style="color: #1a1a2e; font-weight: 700; margin: 5px 0 0 0; font-size: 0.8rem; position: relative; z-index: 1;">
+                            Article(s) nécessitent réapprovisionnement
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Statistiques avec couleurs bleues -->
+                <div class="row text-center mb-2" style="margin: 0;">
+                    <div class="col-6" style="padding: 0 4px;">
+                        <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 10px; border-radius: 8px; box-shadow: 0 6px 15px rgba(220, 38, 38, 0.4); border: 2px solid #f87171;">
+                            <h4 style="color: #fff; font-weight: 800; margin: 0; font-size: 1.4rem; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);">
+                                {{ low_stock_items.items|selectattr('quantity', 'equalto', 0)|list|length }}
+                            </h4>
+                            <small style="color: #ffe5e5; font-weight: 700; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.3px;">Rupture</small>
+                        </div>
+                    </div>
+                    <div class="col-6" style="padding: 0 4px;">
+                        <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 10px; border-radius: 8px; box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4); border: 2px solid #60a5fa;">
+                            <h4 style="color: #fff; font-weight: 800; margin: 0; font-size: 1.4rem; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);">
+                                {{ (low_stock_items.items|length) - (low_stock_items.items|selectattr('quantity', 'equalto', 0)|list|length) }}
+                            </h4>
+                            <small style="color: #fff5e1; font-weight: 700; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.3px;">Stock Bas</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Message d'action avec fond bleu -->
+                <div style="background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); padding: 10px; border-radius: 8px; box-shadow: 0 6px 15px rgba(59, 130, 246, 0.3); border-left: 3px solid #93c5fd;">
+                    <p style="margin: 0; color: #fff; font-weight: 600; font-size: 0.75rem; text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);">
+                        <i class="fas fa-info-circle me-1" style="color: #ffff00; filter: drop-shadow(0 0 3px rgba(255, 255, 0, 0.5));"></i>
+                        <strong>Action requise :</strong> Consultez la liste ci-dessous.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Footer avec dégradé sombre -->
+            <div class="modal-footer" style="background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%); border-top: 2px solid #3b82f6; padding: 10px 15px;">
+                <button type="button" class="btn btn-sm" data-bs-dismiss="modal" style="background: linear-gradient(135deg, #535c68 0%, #95afc0 100%); color: #fff; padding: 7px 18px; font-weight: 700; border: none; border-radius: 6px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); text-transform: uppercase; letter-spacing: 0.3px; font-size: 0.75rem;">
+                    <i class="fas fa-times me-1"></i>Fermer
+                </button>
+                <button type="button" class="btn btn-sm" data-bs-dismiss="modal" style="background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #2563eb 100%); color: #fff; padding: 7px 18px; font-weight: 700; border: none; border-radius: 6px; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.5); text-transform: uppercase; letter-spacing: 0.3px; font-size: 0.75rem;">
+                    <i class="fas fa-list me-1"></i>Voir Liste
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h4 class="mb-0"><i class="fas fa-list me-2"></i>LISTE DES ARTICLES EN STOCK BAS</h4>
+    </div>
+    <div class="card-body">
+        <div style="overflow-x: hidden;">
+            <table class="table table-hover" style="table-layout: fixed; width: 100%;">
+                <thead class="table-light">
+                    <tr>
+                        <th style="text-align: center; vertical-align: middle; width: 24%; font-size: 1rem;">NOM DE L'ARTICLE</th>
+                        <th style="text-align: center; vertical-align: middle; width: 20%; font-size: 1rem;">NATURE DE PRESTATION</th>
+                        <th style="text-align: center; vertical-align: middle; width: 10%; font-size: 1rem;">QUANTITÉ ACTUELLE</th>
+                        <th style="text-align: center; vertical-align: middle; width: 12%; font-size: 1rem;">SEUIL DE COMMANDE</th>
+                        <th style="text-align: center; vertical-align: middle; width: 8%; font-size: 1rem;">UNITÉ</th>
+                        <th style="text-align: center; vertical-align: middle; width: 13%; font-size: 1rem;">STATUT</th>
+                        <th style="text-align: center; vertical-align: middle; width: 18%; font-size: 1rem;">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in low_stock_items.items %}
+                    <tr>
+                        <td style="vertical-align: middle;">
+                            <strong style="display: block;">{{ item.name }}</strong>
+                            <small style="color: #6c757d; display: block; margin-top: 2px;"><code>{{ item.sku }}</code></small>
+                            {% if item.description %}
+                            <small class="text-muted" style="display: block; margin-top: 4px;">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</small>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center; vertical-align: middle;">
+                            {% if item.category %}
+                                <span class="badge bg-info" style="white-space: normal; line-height: 1.3; display: inline-block; max-width: 100%;">{{ item.category }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center; vertical-align: middle;">
+                            <span class="fw-bold {% if item.quantity == 0 %}text-danger{% else %}text-warning{% endif %}">
+                                {{ item.quantity }}
+                            </span>
+                        </td>
+                        <td style="text-align: center; vertical-align: middle;"><strong>{{ item.reorder_level }}</strong></td>
+                        <td style="text-align: center; vertical-align: middle;">{{ item.unit }}</td>
+                        <td style="text-align: center; vertical-align: middle;">
+                            {% if item.quantity == 0 %}
+                                <span class="badge bg-danger" style="color: black !important; display: inline-block; white-space: normal; line-height: 1.3; max-width: 100%;">Rupture de Stock</span>
+                            {% else %}
+                                <span class="badge bg-warning" style="color: black !important; display: inline-block; white-space: normal; line-height: 1.3; max-width: 100%;">Stock Bas</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center; vertical-align: middle;">
+                            {% if session.get('user_id') %}
+                                {% set current_user = get_user_by_id(session.get('user_id')) %}
+                                {% if current_user and current_user.role != 'user' %}
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ url_for('add_reception') }}?item_id={{ item.id }}" 
+                                           class="btn btn-success btn-sm" title="Nouvelle réception">
+                                            <i class="fas fa-truck"></i>
+                                        </a>
+                                        <a href="{{ url_for('edit_item', item_id=item.id) }}" 
+                                           class="btn btn-primary btn-sm" title="Modifier l'article">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                {% else %}
+                                    <!-- Badge Consultation pour les utilisateurs simples -->
+                                    <span class="badge" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.4); display: inline-flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.3px; border: 2px solid rgba(255, 255, 255, 0.3); white-space: nowrap;">
+                                        <i class="fas fa-eye" style="font-size: 1rem;"></i>
+                                        <span>Consultation</span>
+                                    </span>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    {% if low_stock_items.pages > 1 %}
+    <div class="card-footer">
+        <nav aria-label="Navigation des pages">
+            <ul class="pagination justify-content-center mb-0">
+                <!-- Bouton Précédent -->
+                <li class="page-item {% if not low_stock_items.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('low_stock', page=low_stock_items.prev_num, category=category_filter) if low_stock_items.has_prev else '#' }}">
+                        <i class="fas fa-chevron-left"></i> Précédent
+                    </a>
+                </li>
+                
+                <!-- Numéros de page -->
+                {% for page_num in range(1, low_stock_items.pages + 1) %}
+                    {% if page_num == low_stock_items.page %}
+                        <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                    {% elif page_num <= 3 or page_num > low_stock_items.pages - 3 or (page_num >= low_stock_items.page - 1 and page_num <= low_stock_items.page + 1) %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('low_stock', page=page_num, category=category_filter) }}">{{ page_num }}</a>
+                        </li>
+                    {% elif page_num == 4 or page_num == low_stock_items.pages - 3 %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- Bouton Suivant -->
+                <li class="page-item {% if not low_stock_items.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('low_stock', page=low_stock_items.next_num, category=category_filter) if low_stock_items.has_next else '#' }}">
+                        Suivant <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        <!-- Info pagination -->
+        <div class="text-center mt-2">
+            <small class="text-muted">
+                Page {{ low_stock_items.page }} sur {{ low_stock_items.pages }} 
+                ({{ low_stock_items.total }} article(s) au total)
+            </small>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Résumé</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h4 class="text-danger">{{ low_stock_items.items|selectattr('quantity', 'equalto', 0)|list|length }}</h4>
+                        <small style="color: black;">Rupture de Stock</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-warning">{{ (low_stock_items.items|length) - (low_stock_items.items|selectattr('quantity', 'equalto', 0)|list|length) }}</h4>
+                        <small style="color: black;">Stock Bas</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Actions Recommandées</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-shopping-cart text-primary me-2"></i>
+                        Passer des commandes de réapprovisionnement
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-edit text-success me-2"></i>
+                        Ajuster les seuils de réapprovisionnement si nécessaire
+                    </li>
+                    <li>
+                        <i class="fas fa-bell text-warning me-2"></i>
+                        Surveiller régulièrement ces articles
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+        <h4 class="text-success">Excellent!</h4>
+        <p class="text-muted mb-4">Aucun article n'est actuellement en stock bas.</p>
+        <a href="{{ url_for('items') }}" class="btn btn-primary">
+            <i class="fas fa-eye me-2"></i>Voir Tous les Articles
+        </a>
+    </div>
+</div>
+{% endif %}
+
+{% if low_stock_items %}
+<!-- Script pour afficher automatiquement le modal -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        const url = new URL(window.location.href);
+        const params = url.searchParams;
+        const shouldOpen = params.get('alert') === '1';
+        if (!shouldOpen) return;
+
+        const modalElement = document.getElementById('stockCritiqueModal');
+        if (!modalElement) return;
+
+        const stockModal = new bootstrap.Modal(modalElement, {
+            backdrop: 'static',
+            keyboard: true
+        });
+        
+        setTimeout(function() {
+            stockModal.show();
+            
+            // Ajuster le z-index après affichage
+            setTimeout(function() {
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.style.zIndex = '9998';
+                }
+                if (modalElement) {
+                    modalElement.style.zIndex = '9999';
+                }
+            }, 50);
+
+            // Nettoyer le paramètre d'alerte pour éviter la réapparition lors de la pagination/scroll
+            params.delete('alert');
+            const newQs = params.toString();
+            const newUrl = url.pathname + (newQs ? '?' + newQs : '');
+            window.history.replaceState({}, '', newUrl);
+        }, 300);
+    } catch (e) {}
+});
+</script>
+
+<!-- Styles pour les animations -->
+<style>
+/* Animation pulse pour l'icône */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.15);
+        opacity: 0.9;
+    }
+}
+
+/* Animation shine (brillance) */
+@keyframes shine {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+/* Animation shimmer (scintillement) */
+@keyframes shimmer {
+    0% {
+        background-position: -100% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Animation d'entrée du modal */
+#stockCritiqueModal .modal-content {
+    animation: modalSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-80px) scale(0.8) rotate(-5deg);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1) rotate(0deg);
+    }
+}
+
+/* Effet hover sur les boutons */
+#stockCritiqueModal .modal-footer .btn:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 20px rgba(255, 107, 53, 0.6);
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Effet hover sur les statistiques */
+#stockCritiqueModal .modal-body .row > div > div:hover {
+    transform: scale(1.05) rotate(2deg);
+    transition: all 0.3s ease;
+}
+
+/* Animation du badge principal */
+#stockCritiqueModal .modal-body > div:first-child > div {
+    animation: badgePulse 3s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% {
+        box-shadow: 0 8px 20px rgba(255, 107, 53, 0.4);
+    }
+    50% {
+        box-shadow: 0 12px 30px rgba(255, 107, 53, 0.7);
+    }
+}
+</style>
+{% endif %}
+
+{% endblock %}
+

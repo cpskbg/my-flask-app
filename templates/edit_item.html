@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block title %}Détails Article - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-eye me-2"></i>Détails de l'Article</h1>
+    <a href="{{ url_for('items') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Retour aux Articles
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form autocomplete="off" method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="sku" class="form-label">SKU <small style="color: #dc3545; font-weight: 500;">(non modifiable)</small></label>
+                            <input type="text" class="form-control" id="sku" name="sku" value="{{ item.sku or '' }}" readonly style="background-color: #f8f9fa;">
+                            <div class="form-text">Le SKU ne peut pas être modifié après création</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">Nom de l'Article <span class="text-success" style="font-weight: 500;"><i class="fas fa-edit"></i> (modifiable)</span></label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ item.name }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3">{{ item.description or '' }}</textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="categorie_principale" class="form-label">Nature de Prestation <span class="text-success" style="font-weight: 500;"><i class="fas fa-edit"></i> (modifiable)</span></label>
+                            <select class="form-select" id="categorie_principale" name="categorie_principale" required>
+                                <option value="">Sélectionner une nature de prestation...</option>
+                                <option value="Fournitures de bureaux et documentation" 
+                                    {{ 'selected' if item.category == 'Fournitures de bureaux et documentation' }}>🖊️ Fournitures de bureaux et de documentation</option>
+                                <option value="Produits d'hygiène et de désinfection" 
+                                    {{ 'selected' if item.category == "Produits d'hygiène et de désinfection" }}>🧼 Produits d'hygiène et de désinfection</option>
+                                <option value="Alimentation à usage Humaine" 
+                                    {{ 'selected' if item.category == 'Alimentation à usage Humaine' }}>🍽️ Alimentation à usage Humaine</option>
+                                <option value="Fournitures pour le matériel informatique" 
+                                    {{ 'selected' if item.category == 'Fournitures pour le matériel informatique' }}>💻 Fournitures pour le matériel informatique</option>
+                                <option value="Entretien bâtiments administratifs" 
+                                    {{ 'selected' if item.category in ['Articles de plomberies', 'Articles électriques', 'Articles de la peinture'] }}>▶ Entretien bâtiments administratifs (Sous-menu)</option>
+                            </select>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <strong>Note:</strong> L'option "▶ Entretien bâtiments administratifs" affichera un sous-menu de sélection
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3" id="sous_prestation_container" 
+                             {% if item.category in ['Articles de plomberies', 'Articles électriques', 'Articles de la peinture'] %}style="display: block;"{% else %}style="display: none;"{% endif %}>
+                            <label for="category" class="form-label">Sous-prestation <span class="text-danger">*</span></label>
+                            <select class="form-select" id="category" name="category">
+                                <option value="">Sélectionner une sous-prestation...</option>
+                                <option value="Articles de plomberies" {{ 'selected' if item.category == 'Articles de plomberies' }}>🔧 Articles de plomberies</option>
+                                <option value="Articles électriques" {{ 'selected' if item.category == 'Articles électriques' }}>⚡ Articles électriques</option>
+                                <option value="Articles de la peinture" {{ 'selected' if item.category == 'Articles de la peinture' }}>🎨 Articles de la peinture</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="unit" class="form-label">Unité</label>
+                            <select class="form-select" id="unit" name="unit">
+                                <option value="Unité" {{ 'selected' if item.unit == 'Unité' }}>Unité</option>
+                                <option value="Lot" {{ 'selected' if item.unit == 'Lot' }}>Lot</option>
+                                <option value="Paquet" {{ 'selected' if item.unit == 'Paquet' }}>Paquet</option>
+                                <option value="Mètre" {{ 'selected' if item.unit == 'Mètre' }}>Mètre</option>
+                                <option value="Boîte" {{ 'selected' if item.unit == 'Boîte' }}>Boîte</option>
+                                <option value="Ramette" {{ 'selected' if item.unit == 'Ramette' }}>Ramette</option>
+                                <option value="Kg" {{ 'selected' if item.unit == 'Kg' }}>Kg</option>
+                                <option value="Litre" {{ 'selected' if item.unit == 'Litre' }}>Litre</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="reorder_level" class="form-label">Seuil de Commande</label>
+                            <input type="number" class="form-control" id="reorder_level" name="reorder_level" value="{{ item.reorder_level }}" min="0">
+                            <div class="form-text">Alerte quand le stock descend en dessous de ce niveau</div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Quantité Actuelle:</strong> {{ item.quantity }} {{ item.unit }}
+                        <br><small>Pour modifier la quantité, utilisez la section Réceptions pour enregistrer les entrées de stock.</small>
+                    </div>
+                    
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Champs Modifiables:</strong> Le <strong>Nom</strong>, la <strong>Nature de Prestation</strong>, la <strong>Description</strong>, l'<strong>Unité</strong> et le <strong>Seuil de Commande</strong> peuvent être modifiés.
+                        <br><small>Seul le SKU est verrouillé pour préserver l'intégrité des données.</small>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Mettre à Jour
+                        </button>
+                        <a href="{{ url_for('items') }}" class="btn btn-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Statistiques de l'Article</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h4 class="text-primary">{{ item.quantity }}</h4>
+                        <small class="text-muted">Stock Actuel</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-warning">{{ item.reorder_level }}</h4>
+                        <small class="text-muted">Seuil de Commande</small>
+                    </div>
+                </div>
+                <hr>
+                <div class="mb-2">
+                    <strong>Statut:</strong>
+                    {% if item.quantity == 0 %}
+                        <span class="badge bg-danger">Rupture de Stock</span>
+                    {% elif item.quantity <= item.reorder_level %}
+                        <span class="badge bg-warning">Stock Bas</span>
+                    {% else %}
+                        <span class="badge bg-success">En Stock</span>
+                    {% endif %}
+                </div>
+                <div class="mb-2">
+                    <strong>Créé le:</strong> {{ format_datetime(item.created_at, '%d/%m/%Y') }}
+                </div>
+                <div>
+                    <strong>Dernière MAJ:</strong> {{ format_datetime(item.updated_at, '%d/%m/%Y') }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-truck me-2"></i>Actions Rapides</h6>
+            </div>
+            <div class="card-body">
+                <a href="{{ url_for('add_reception') }}?item_id={{ item.id }}" class="btn btn-success btn-sm w-100 mb-2">
+                    <i class="fas fa-truck me-2"></i>Nouvelle Réception
+                </a>
+                <a href="{{ url_for('receptions') }}" class="btn btn-info btn-sm w-100">
+                    <i class="fas fa-history me-2"></i>Historique Réceptions
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Succès Modification -->
+<div class="modal fade" id="successEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 15px; box-shadow: 0 10px 40px rgba(40, 167, 69, 0.4); border: none; overflow: hidden;">
+            <!-- En-tête -->
+            <div style="background: rgba(0, 0, 0, 0.15); padding: 15px 25px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="color: #fff; font-size: 1.1rem; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-check-circle" style="margin-right: 10px; animation: iconPulse 2s ease-in-out infinite;"></i>ARTICLE MODIFIÉ
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <!-- Corps -->
+            <div style="padding: 25px 30px 20px 30px; color: #fff;">
+                <!-- Message principal -->
+                <div style="text-align: center; margin-bottom: 20px; font-size: 1rem; line-height: 1.6; font-weight: 500;">
+                    <div style="font-size: 1.2rem; margin-bottom: 8px;">✓ Modification enregistrée avec succès</div>
+                    <div style="opacity: 0.9;">Les informations de l'article ont été mises à jour</div>
+                </div>
+                
+                <!-- Carte SKU -->
+                <div style="background: rgba(255, 255, 255, 0.15); padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.25);">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-barcode" style="font-size: 1.3rem; opacity: 0.9;"></i>
+                        <div style="flex: 1;">
+                            <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 2px;">SKU</div>
+                            <div style="font-size: 1.1rem; font-weight: 700;" id="editedItemSKU">{{ item.sku }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Détails des modifications -->
+                <div style="background: rgba(255, 255, 255, 0.15); padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.25);">
+                    <div style="font-size: 0.9rem; line-height: 1.6;" id="editedItemDetails">
+                        <!-- Rempli dynamiquement par JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Info finale -->
+                <div style="background: rgba(0, 0, 0, 0.2); padding: 12px 15px; border-radius: 8px; font-size: 0.9rem; text-align: center; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <i class="fas fa-info-circle me-2"></i>L'article a été mis à jour dans le système
+                </div>
+            </div>
+            
+            <!-- Pied de page -->
+            <div style="background: rgba(0, 0, 0, 0.15); padding: 15px 25px; display: flex; justify-content: space-between; gap: 15px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="flex: 1; padding: 10px 25px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; background: rgba(255, 255, 255, 0.95); border: none; color: #000; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.3s ease;">
+                    <i class="fas fa-times me-2"></i>Fermer
+                </button>
+                <a href="{{ url_for('items') }}" class="btn btn-warning" style="flex: 1; padding: 10px 25px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; background: #ffc107; border: none; color: #000; box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4); text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; text-align: center; transition: all 0.3s ease;">
+                    <i class="fas fa-list me-2"></i>Voir Articles
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script pour afficher le modal -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+    {% for category, message in messages %}
+        {% if category == 'success' and 'modifié' in message %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        const messageText = '{{ message|safe }}';
+        const modalElement = document.getElementById('successEditModal');
+        const backdrop = document.querySelector('.modal-backdrop');
+        
+        // Extraction des détails depuis le message
+        const parts = messageText.split('|');
+        if (parts.length > 1) {
+            const details = parts.slice(1).join('<br>').trim();
+            document.getElementById('editedItemDetails').innerHTML = details;
+        }
+        
+        // Afficher le modal
+        const successModal = new bootstrap.Modal(modalElement, {
+            backdrop: 'static',
+            keyboard: true
+        });
+        successModal.show();
+        
+        // Ajuster z-index
+        setTimeout(function() {
+            const backdrop = document.querySelector('.modal-backdrop');
+            const modalElement = document.getElementById('successEditModal');
+            if (backdrop) backdrop.style.zIndex = '9998';
+            if (modalElement) modalElement.style.zIndex = '9999';
+        }, 50);
+    }, 100);
+});
+</script>
+        {% endif %}
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+<!-- Styles pour les animations -->
+<style>
+@keyframes iconPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+#successEditModal .modal-content {
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+#successEditModal .btn-light:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+#successEditModal .btn-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 193, 7, 0.5);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categoriePrincipaleSelect = document.getElementById('categorie_principale');
+    const sousPrestationContainer = document.getElementById('sous_prestation_container');
+    const categorySelect = document.getElementById('category');
+    
+    categoriePrincipaleSelect.addEventListener('change', function() {
+        const selectedValue = this.value;
+        
+        if (selectedValue === 'Entretien bâtiments administratifs') {
+            // Afficher le sous-menu avec animation
+            sousPrestationContainer.style.display = 'block';
+            setTimeout(() => sousPrestationContainer.classList.add('show'), 10);
+            categorySelect.required = true;
+            categorySelect.value = '';
+        } else {
+            // Masquer le sous-menu
+            sousPrestationContainer.classList.remove('show');
+            setTimeout(() => sousPrestationContainer.style.display = 'none', 300);
+            categorySelect.required = false;
+            // Utiliser la catégorie principale comme valeur
+            categorySelect.value = selectedValue;
+        }
+    });
+});
+</script>
+{% endblock %}

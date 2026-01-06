@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}Système de Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Flatpickr (Datepicker) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <!-- Fichier CSS unifié - Tous les styles fusionnés -->
+    <link href="{{ url_for('static', filename='css/main-unified.css') }}" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
+    <style>
+        /* Force z-index pour TOUS les modaux de succès */
+        .modal.fade.show {
+            z-index: 999999 !important;
+        }
+
+        .modal-backdrop.show {
+            z-index: 999998 !important;
+            background-color: rgba(0, 0, 0, 0.45) !important;
+            backdrop-filter: blur(3px);
+        }
+
+        /* Styles spécifiques pour surcharger le CSS admin */
+        .sidebar-collapsed {
+            width: 80px;
+        }
+
+        .main-wrapper.expanded {
+            margin-left: 80px;
+            width: calc(100% - 80px);
+        }
+
+        .sidebar .sidebar-text {
+            transition: opacity 0.2s ease;
+        }
+
+        .sidebar.collapsed .sidebar-text {
+            opacity: 0;
+            display: none;
+        }
+
+        /* ========================================
+           SYSTÈME D'ICÔNES SUBLIME
+           ======================================== */
+
+        /* Wrapper d'icône avec effet glassmorphism */
+        .nav-icon-wrapper {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            margin-right: 12px;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-icon-wrapper i {
+            font-size: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Effet de brillance animé */
+        .nav-icon-wrapper::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.6s ease;
+            opacity: 0;
+        }
+
+        .nav-link:hover .nav-icon-wrapper::before {
+            opacity: 1;
+            animation: shine 1.5s infinite;
+        }
+
+        @keyframes shine {
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(45deg);
+            }
+
+            100% {
+                transform: translateX(100%) translateY(100%) rotate(45deg);
+            }
+        }
+
+        /* Couleurs personnalisées pour chaque icône */
+        .nav-icon-wrapper[data-color="blue"] {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.15));
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .nav-icon-wrapper[data-color="blue"] i {
+            color: #3b82f6;
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="blue"],
+        .nav-link.active .nav-icon-wrapper[data-color="blue"] {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-color: #3b82f6;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px) scale(1.05);
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="blue"] i,
+        .nav-link.active .nav-icon-wrapper[data-color="blue"] i {
+            color: #fff;
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .nav-icon-wrapper[data-color="purple"] {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(147, 51, 234, 0.15));
+            border-color: rgba(168, 85, 247, 0.3);
+        }
+
+        .nav-icon-wrapper[data-color="purple"] i {
+            color: #a855f7;
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="purple"],
+        .nav-link.active .nav-icon-wrapper[data-color="purple"] {
+            background: linear-gradient(135deg, #a855f7, #9333ea);
+            border-color: #a855f7;
+            box-shadow: 0 8px 25px rgba(168, 85, 247, 0.4);
+            transform: translateY(-2px) scale(1.05);
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="purple"] i,
+        .nav-link.active .nav-icon-wrapper[data-color="purple"] i {
+            color: #fff;
+            transform: scale(1.1) rotate(-5deg);
+        }
+
+        .nav-icon-wrapper[data-color="orange"] {
+            background: linear-gradient(135deg, rgba(251, 146, 60, 0.15), rgba(249, 115, 22, 0.15));
+            border-color: rgba(251, 146, 60, 0.3);
+        }
+
+        .nav-icon-wrapper[data-color="orange"] i {
+            color: #fb923c;
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="orange"],
+        .nav-link.active .nav-icon-wrapper[data-color="orange"] {
+            background: linear-gradient(135deg, #fb923c, #f97316);
+            border-color: #fb923c;
+            box-shadow: 0 8px 25px rgba(251, 146, 60, 0.4);
+            transform: translateY(-2px) scale(1.05);
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="orange"] i,
+        .nav-link.active .nav-icon-wrapper[data-color="orange"] i {
+            color: #fff;
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .nav-icon-wrapper[data-color="green"] {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.15));
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .nav-icon-wrapper[data-color="green"] i {
+            color: #22c55e;
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="green"],
+        .nav-link.active .nav-icon-wrapper[data-color="green"] {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-color: #22c55e;
+            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
+            transform: translateY(-2px) scale(1.05);
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="green"] i,
+        .nav-link.active .nav-icon-wrapper[data-color="green"] i {
+            color: #fff;
+            transform: scale(1.1) rotate(-5deg);
+        }
+
+        .nav-icon-wrapper[data-color="pink"] {
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(219, 39, 119, 0.15));
+            border-color: rgba(236, 72, 153, 0.3);
+        }
+
+        .nav-icon-wrapper[data-color="pink"] i {
+            color: #ec4899;
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="pink"],
+        .nav-link.active .nav-icon-wrapper[data-color="pink"] {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+            border-color: #ec4899;
+            box-shadow: 0 8px 25px rgba(236, 72, 153, 0.4);
+            transform: translateY(-2px) scale(1.05);
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="pink"] i,
+        .nav-link.active .nav-icon-wrapper[data-color="pink"] i {
+            color: #fff;
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .nav-icon-wrapper[data-color="red"] {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15));
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .nav-icon-wrapper[data-color="red"] i {
+            color: #ef4444;
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="red"],
+        .nav-link.active .nav-icon-wrapper[data-color="red"] {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-color: #ef4444;
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+            transform: translateY(-2px) scale(1.05);
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+
+            0%,
+            100% {
+                box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 8px 35px rgba(239, 68, 68, 0.6);
+            }
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="red"] i,
+        .nav-link.active .nav-icon-wrapper[data-color="red"] i {
+            color: #fff;
+            transform: scale(1.1) rotate(-5deg);
+        }
+
+        .nav-icon-wrapper[data-color="teal"] {
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.15), rgba(13, 148, 136, 0.15));
+            border-color: rgba(20, 184, 166, 0.3);
+        }
+
+        .nav-icon-wrapper[data-color="teal"] i {
+            color: #14b8a6;
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="teal"],
+        .nav-link.active .nav-icon-wrapper[data-color="teal"] {
+            background: linear-gradient(135deg, #14b8a6, #0d9488);
+            border-color: #14b8a6;
+            box-shadow: 0 8px 25px rgba(20, 184, 166, 0.4);
+            transform: translateY(-2px) scale(1.05);
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="teal"] i,
+        .nav-link.active .nav-icon-wrapper[data-color="teal"] i {
+            color: #fff;
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        /* Styles pour la couleur jaune */
+        .nav-icon-wrapper[data-color="yellow"] {
+            background: linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(202, 138, 4, 0.15));
+            border-color: rgba(234, 179, 8, 0.3);
+        }
+
+        .nav-icon-wrapper[data-color="yellow"] i {
+            color: #eab308;
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="yellow"],
+        .nav-link.active .nav-icon-wrapper[data-color="yellow"] {
+            background: linear-gradient(135deg, #eab308, #ca8a04);
+            border-color: #eab308;
+            box-shadow: 0 8px 25px rgba(234, 179, 8, 0.4);
+            transform: translateY(-2px) scale(1.05);
+        }
+
+        .nav-link:hover .nav-icon-wrapper[data-color="yellow"] i,
+        .nav-link.active .nav-icon-wrapper[data-color="yellow"] i {
+            color: #fff;
+            transform: scale(1.1) rotate(-5deg);
+        }
+
+        /* Animation d'entrée pour les icônes */
+        @keyframes iconFadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .nav-item {
+            animation: iconFadeIn 0.5s ease forwards;
+        }
+
+        .nav-item:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .nav-item:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .nav-item:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .nav-item:nth-child(4) {
+            animation-delay: 0.25s;
+        }
+
+        .nav-item:nth-child(5) {
+            animation-delay: 0.3s;
+        }
+
+        .nav-item:nth-child(6) {
+            animation-delay: 0.35s;
+        }
+
+        .nav-item:nth-child(7) {
+            animation-delay: 0.4s;
+        }
+
+        /* Effet de particules sur hover */
+        .nav-link:hover .nav-icon-wrapper::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+            background: inherit;
+            filter: blur(10px);
+            opacity: 0.6;
+            z-index: -1;
+            animation: glow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: scale(1.2);
+                opacity: 0.8;
+            }
+        }
+
+        /* Animation de lueur pulsante pour le logo */
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                opacity: 0.5;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(1.1);
+            }
+        }
+
+        /* Mode sidebar réduite */
+        .sidebar.collapsed .nav-icon-wrapper {
+            margin-right: 0;
+            width: 40px;
+            height: 40px;
+        }
+
+        .sidebar.collapsed .nav-icon-wrapper i {
+            font-size: 18px;
+        }
+
+        /* Masquer l'en-tête officiel quand sidebar réduite */
+        .sidebar.collapsed .sidebar-official-header {
+            display: none !important;
+            opacity: 0 !important;
+        }
+
+        /* Afficher l'icône compacte quand sidebar réduite */
+        .sidebar.collapsed .sidebar-collapsed-icon {
+            display: block !important;
+            opacity: 1 !important;
+        }
+
+        /* Réduire le padding du header quand sidebar réduite */
+        .sidebar.collapsed .sidebar-header {
+            padding: 15px 10px !important;
+        }
+
+        /* Optimiser l'espace du menu en mode réduit */
+        .sidebar.collapsed .sidebar-navigation {
+            padding-top: 10px;
+        }
+
+        .sidebar.collapsed .nav-item {
+            margin-bottom: 8px;
+        }
+
+        .sidebar.collapsed .nav-link {
+            padding: 12px 0;
+            justify-content: center;
+        }
+
+        /* === Sidebar Pro Refinements (override) === */
+        :root {
+            --nav-bg: #0f172a;
+            --nav-text: #e5e7eb;
+            --nav-muted: #94a3b8;
+            --accent: #fbbf24;
+        }
+
+        .sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--nav-text);
+            padding: 10px 12px;
+            border-radius: 10px;
+            position: relative;
+            transition: all .25s ease;
+        }
+
+        .sidebar .nav-link:hover {
+            background: rgba(255, 255, 255, 0.06);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+        }
+
+        .sidebar .nav-link.active {
+            background: linear-gradient(135deg, rgba(30, 58, 138, .22), rgba(37, 99, 235, .22));
+            box-shadow: 0 6px 18px rgba(37, 99, 235, .18);
+        }
+
+        .sidebar .nav-link.active::before {
+            content: "";
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 60%;
+            border-radius: 4px;
+            background: linear-gradient(180deg, #fbbf24, #f59e0b);
+            box-shadow: 0 0 12px rgba(251, 191, 36, .5);
+        }
+
+        .nav-icon-wrapper {
+            margin-right: 8px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, .12);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .12);
+            transition: all .25s ease;
+        }
+
+        .nav-icon-wrapper i {
+            font-size: 16px;
+            transition: transform .25s ease;
+        }
+
+        .nav-link:hover .nav-icon-wrapper {
+            transform: translateY(-1px) scale(1.03);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, .18);
+        }
+
+        .nav-link:hover .nav-icon-wrapper i {
+            transform: scale(1.06) rotate(2deg);
+        }
+
+        .nav-icon-wrapper[data-color="blue"] {
+            background: linear-gradient(135deg, rgba(59, 130, 246, .12), rgba(37, 99, 235, .12));
+            border-color: rgba(59, 130, 246, .35);
+        }
+
+        .nav-link.active .nav-icon-wrapper[data-color="blue"] {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-color: #3b82f6;
+        }
+
+        .nav-icon-wrapper[data-color="purple"] {
+            background: linear-gradient(135deg, rgba(168, 85, 247, .12), rgba(147, 51, 234, .12));
+            border-color: rgba(168, 85, 247, .35);
+        }
+
+        .nav-link.active .nav-icon-wrapper[data-color="purple"] {
+            background: linear-gradient(135deg, #a855f7, #9333ea);
+            border-color: #a855f7;
+        }
+
+        .sidebar .sidebar-text {
+            font-weight: 600;
+            letter-spacing: .2px;
+            color: var(--nav-text);
+        }
+
+        .nav-counter {
+            margin-left: auto;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 6px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .72rem;
+            font-weight: 700;
+            color: #0b1220;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            box-shadow: 0 4px 14px rgba(245, 158, 11, .35);
+        }
+
+        .sidebar.collapsed .nav-link {
+            position: relative;
+        }
+
+        .sidebar.collapsed .sidebar-text {
+            display: none !important;
+        }
+
+        .sidebar.collapsed .nav-link:hover {
+            background: rgba(255, 255, 255, .08);
+        }
+
+        .sidebar.collapsed .nav-counter {
+            display: none !important;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .nav-link,
+            .nav-icon-wrapper {
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            {% if session.user_id %}
+            <!-- Sidebar -->
+            <nav class="sidebar" id="sidebar">
+                <div class="sidebar-header"
+                    style="background: linear-gradient(145deg, #1e3a8a 0%, #172554 100%); padding: 24px 16px; position: relative; overflow: hidden; transition: all 0.3s ease; border-bottom: 2px solid rgba(251, 191, 36, 0.4);">
+                    <!-- Bande dorée décorative -->
+                    <div
+                        style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 50%, #fbbf24 100%);">
+                    </div>
+
+                    {% set current_user = get_user_by_id(session.get('user_id')) %}
+                    <!-- En-tête officiel (masqué quand sidebar réduite) -->
+                    <div class="sidebar-official-header"
+                        style="text-align: center; color: #ffffff; position: relative; z-index: 1; transition: opacity 0.3s ease;">
+
+                        <div style="margin-bottom: 12px;">
+                            <div
+                                style="font-size: 0.8rem; font-weight: 800; letter-spacing: 1.5px; color: #fbbf24; text-transform: uppercase;">
+                                ROYAUME DU MAROC
+                            </div>
+                            <div
+                                style="font-size: 0.7rem; font-weight: 600; letter-spacing: 0.5px; color: rgba(255, 255, 255, 0.9);">
+                                MINISTÈRE DE L'INTÉRIEUR
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 14px;">
+                            <div
+                                style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.5px; color: rgba(255, 255, 255, 0.7); line-height: 1.2;">
+                                DIRECTION GÉNÉRALE DE LA
+                            </div>
+                            <div
+                                style="font-size: 0.85rem; font-weight: 800; letter-spacing: 1px; color: #fbbf24; margin-top: 2px;">
+                                PROTECTION CIVILE
+                            </div>
+                        </div>
+
+                        {% if not (current_user and current_user.is_super_admin) %}
+                        <!-- Séparateur -->
+                        <div
+                            style="height: 1px; background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.4), transparent); margin: 12px 0;">
+                        </div>
+
+                        <!-- Zone Régionale -->
+                        <div style="margin-bottom: 10px;">
+                            <div
+                                style="font-size: 0.6rem; font-weight: 700; letter-spacing: 1px; color: rgba(255, 255, 255, 0.6); text-transform: uppercase; margin-bottom: 4px;">
+                                Commandement Régional
+                            </div>
+                            <div
+                                style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; color: white; text-transform: uppercase; line-height: 1.3;">
+                                {% if current_user and current_user.region_id %}
+                                {{ current_user.region_competence.nom }}
+                                {% elif current_user and current_user.unite_id and current_user.unite_competence.region
+                                %}
+                                {{ current_user.unite_competence.region.nom }}
+                                {% else %}
+                                RABAT-SALÉ-KÉNITRA
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div style="width: 30px; height: 1px; background: rgba(255, 255, 255, 0.2); margin: 8px auto;">
+                        </div>
+
+                        <!-- Zone Provinciale -->
+                        <div>
+                            <div
+                                style="font-size: 0.6rem; font-weight: 700; letter-spacing: 1px; color: rgba(255, 255, 255, 0.6); text-transform: uppercase; margin-bottom: 4px;">
+                                Commandement Provincial
+                            </div>
+                            <div
+                                style="font-size: 0.85rem; font-weight: 800; letter-spacing: 0.5px; color: #fbbf24; text-transform: uppercase; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+                                {% if current_user and current_user.unite_id %}
+                                {{ current_user.unite_competence.nom }}
+                                {% else %}
+                                SIDI KACEM
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Icône compacte pour sidebar réduite -->
+                    <div class="sidebar-collapsed-icon"
+                        style="display: none; text-align: center; opacity: 0; transition: opacity 0.3s ease;">
+                        <div
+                            style="width: 50px; height: 50px; margin: 0 auto; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4); border: 2px solid rgba(255, 255, 255, 0.3);">
+                            <i class="fas fa-shield-alt" style="color: #ffffff; font-size: 1.5rem;"></i>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-sm sidebar-toggle-btn" onclick="toggleSidebar()" title="Réduire/Agrandir"
+                        style="position: absolute; top: 10px; right: 10px; background: rgba(251, 191, 36, 0.2); border: 1px solid #fbbf24; color: #fbbf24; z-index: 2;">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+                <div class="sidebar-navigation">
+                    <ul class="nav flex-column px-2">
+                        {% if session.get('user_id') %}
+
+
+                        <!-- DASHBOARD -->
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'dashboard' }}"
+                                href="{{ url_for('dashboard') }}" title="Tableau de bord">
+                                <span class="nav-icon-wrapper" data-color="blue">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                </span>
+                                <span class="sidebar-text">Tableau de bord</span>
+                            </a>
+                        </li>
+
+                        <!-- BUDGET -->
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint in ['budget_details', 'add_budget', 'edit_budget'] }}"
+                                href="{{ url_for('budget_details') }}" title="Budget">
+                                <span class="nav-icon-wrapper" data-color="green">
+                                    <i class="fas fa-coins"></i>
+                                </span>
+                                <span class="sidebar-text">Budget</span>
+                            </a>
+                        </li>
+
+                        <!-- UTILISATEURS - Moved to Administration section -->
+
+                        <!-- ARTICLES -->
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint in ['items', 'add_item', 'edit_item'] }}"
+                                href="{{ url_for('items') }}" title="Articles">
+                                <span class="nav-icon-wrapper" data-color="orange">
+                                    <i class="fas fa-boxes"></i>
+                                </span>
+                                <span class="sidebar-text">Articles</span>
+                            </a>
+                        </li>
+
+                        <!-- AVIS ACHAT -->
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint in ['avis_achats', 'add_avis_achat', 'edit_avis_achat'] }}"
+                                href="{{ url_for('avis_achats') }}" title="Avis d'Achat">
+                                <span class="nav-icon-wrapper" data-color="pink">
+                                    <i class="fas fa-file-invoice-dollar"></i>
+                                </span>
+                                <span class="sidebar-text">Avis Achat</span>
+                            </a>
+                        </li>
+
+                        <!-- ENGAGEMENT -->
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint in ['engagements', 'add_engagement', 'edit_engagement'] }}"
+                                href="{{ url_for('engagements') }}" title="Engagements">
+                                <span class="nav-icon-wrapper" data-color="red">
+                                    <i class="fas fa-handshake"></i>
+                                </span>
+                                <span class="sidebar-text">Engagement</span>
+                            </a>
+                        </li>
+
+                        <!-- FOURNISSEUR -->
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint in ['fournisseurs', 'add_fournisseur', 'edit_fournisseur'] }}"
+                                href="{{ url_for('fournisseurs') }}" title="Fournisseurs">
+                                <span class="nav-icon-wrapper" data-color="teal">
+                                    <i class="fas fa-truck"></i>
+                                </span>
+                                <span class="sidebar-text">Fournisseur</span>
+                            </a>
+                        </li>
+
+                        <!-- RECEPTION -->
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint in ['receptions', 'add_reception', 'edit_reception'] }}"
+                                href="{{ url_for('receptions') }}" title="Réceptions">
+                                <span class="nav-icon-wrapper" data-color="blue">
+                                    <i class="fas fa-dolly-flatbed"></i>
+                                </span>
+                                <span class="sidebar-text">Réception</span>
+                            </a>
+                        </li>
+
+                        <!-- DOTATION -->
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint in ['dotations', 'add_dotation', 'edit_dotation'] }}"
+                                href="{{ url_for('dotations') }}" title="Dotations">
+                                <span class="nav-icon-wrapper" data-color="yellow">
+                                    <i class="fas fa-gift"></i>
+                                </span>
+                                <span class="sidebar-text">Dotation</span>
+                            </a>
+                        </li>
+
+                        <!-- STOCK BAS -->
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'low_stock' }}"
+                                href="{{ url_for('low_stock') }}" title="Stock Bas">
+                                <span class="nav-icon-wrapper" data-color="red">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </span>
+                                <span class="sidebar-text">Stock Bas</span>
+                                <span class="nav-counter" id="lowStockCounter">0</span>
+                            </a>
+                        </li>
+
+                        <!-- ADMINISTRATION - Restreint selon niveau de compétence -->
+                        {% set can_manage_structure = current_user and (current_user.is_super_admin or current_user.role
+                        == 'admin' or (current_user.role == 'gestionnaire' and (current_user.region_id or
+                        (current_user.unite_competence and current_user.unite_competence.type == 'unite')))) %}
+                        {% if can_manage_structure %}
+                        <li class="nav-item" style="margin-top: 20px; margin-bottom: 10px;">
+                            <div style="padding: 0 1.5rem; margin-bottom: 10px;">
+                                <span
+                                    style="color: #fbbf24; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">
+                                    <i class="fas fa-crown"></i> Administration
+                                </span>
+                            </div>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint in ['admin_unites', 'add_unite', 'edit_unite'] }}"
+                                href="{{ url_for('admin_unites') }}" title="Gestion des Unités et Centres">
+                                <span class="nav-icon-wrapper" data-color="teal">
+                                    <i class="fas fa-sitemap"></i>
+                                </span>
+                                <span class="sidebar-text">Unités & Centres</span>
+                            </a>
+                        </li>
+                        {% if current_user and (current_user.is_super_admin or current_user.role in ['admin',
+                        'gestionnaire']) %}
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint in ['admin_users_list', 'create_user', 'edit_user'] }}"
+                                href="{{ url_for('admin_users_list') }}" title="Gestion des Utilisateurs">
+                                <span class="nav-icon-wrapper" data-color="purple">
+                                    <i class="fas fa-users-cog"></i>
+                                </span>
+                                <span class="sidebar-text">Utilisateurs</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if current_user and (current_user.is_super_admin or current_user.role == 'admin') %}
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'admin_trash' }}"
+                                href="{{ url_for('admin_trash') }}" title="Corbeille & Restaurations">
+                                <span class="nav-icon-wrapper" data-color="pink">
+                                    <i class="fas fa-trash-restore"></i>
+                                </span>
+                                <span class="sidebar-text">Corbeille</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% endif %}
+
+
+
+                        {% endif %}
+                    </ul>
+                </div>
+        </div>
+        </nav>
+
+        <!-- Main content -->
+        <div class="main-wrapper" id="mainWrapper">
+            <main class="main-content">
+                <!-- Top Navigation Bar - Style Professionnel -->
+                <div class="top-navbar"
+                    style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%); border-bottom: 4px solid #fbbf24; box-shadow: 0 4px 20px rgba(30, 58, 138, 0.3); padding: 16px 30px; display: flex; align-items: center; justify-content: space-between; position: relative;">
+                    <!-- Bande dorée animée -->
+                    <div
+                        style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 50%, #fbbf24 100%); background-size: 200% 100%; animation: shimmer 3s linear infinite;">
+                    </div>
+
+                    <div class="page-title" style="display: flex; align-items: center; gap: 16px;">
+                        <!-- Logo attractif dans navbar -->
+                        <div style="position: relative;">
+                            <!-- Effet de lueur animée -->
+                            <div
+                                style="position: absolute; inset: -8px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 16px; opacity: 0.5; filter: blur(12px); animation: pulse-glow 2s ease-in-out infinite;">
+                            </div>
+                            <!-- Logo avec cadre -->
+                            <div style="position: relative; background: #ffffff; padding: 10px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); border: 3px solid #fbbf24; transition: all 0.3s ease;"
+                                onmouseover="this.style.transform='scale(1.1) rotate(5deg)'; this.style.boxShadow='0 12px 32px rgba(251, 191, 36, 0.6)';"
+                                onmouseout="this.style.transform='scale(1) rotate(0deg)'; this.style.boxShadow='0 8px 24px rgba(0, 0, 0, 0.3)';">
+                                <img src="{{ url_for('static', filename='images/logo.png') }}"
+                                    alt="Logo Protection Civile"
+                                    style="width: 50px; height: 50px; object-fit: contain; display: block;">
+                            </div>
+                        </div>
+                        <div style="color: #ffffff; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); line-height: 1.3;">
+                            {% block page_title %}
+                            <div style="font-size: 1.3rem; font-weight: 800; letter-spacing: 0.5px;">Système de Gestion
+                            </div>
+                            <div
+                                style="font-size: 0.85rem; font-weight: 500; letter-spacing: 0.3px; color: rgba(255, 255, 255, 0.9);">
+                                <i class="fas fa-shield-alt me-1" style="color: #fbbf24; font-size: 0.8rem;"></i>
+                                Budget de fonctionnement (Volet Fournitures)
+                            </div>
+                            {% endblock %}
+                        </div>
+                    </div>
+                    <div class="user-info" style="display: flex; align-items: center; gap: 20px;">
+                        {% if session.get('user_id') %}
+                        {% set current_user = get_user_by_id(session.get('user_id')) %}
+                        {% if current_user %}
+                        <!-- Profil utilisateur avec style dynamique selon le rôle -->
+                        {% if current_user.is_super_admin %}
+                        <!-- SUPER ADMIN - Style doré premium avec couronne, badge sur une seule ligne -->
+                        <div class="user-profile"
+                            style="display: inline-flex; align-items: center; gap: 10px; padding: 8px 14px; background: linear-gradient(135deg, rgba(251, 191, 36, 0.18) 0%, rgba(245, 158, 11, 0.18) 100%); border-radius: 999px; backdrop-filter: blur(14px); border: 2px solid #fbbf24; box-shadow: 0 6px 18px rgba(251, 191, 36, 0.35); position: relative; overflow: hidden; white-space: nowrap;">
+                            <!-- Effet de brillance animé -->
+                            <div
+                                style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent); transform: rotate(45deg); animation: shine-profile 3s infinite;">
+                            </div>
+                            <div
+                                style="width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(251, 191, 36, 0.5); border: 2px solid #ffffff; position: relative; z-index: 2;">
+                                <i class="fas fa-crown"
+                                    style="color: #ffffff; font-size: 1.2rem; animation: pulse-crown 2s infinite;"></i>
+                            </div>
+                            <div
+                                style="display: flex; align-items: baseline; gap: 6px; position: relative; z-index: 2;">
+                                <span
+                                    style="color: #ffffff; font-weight: 700; font-size: 0.9rem; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">{{
+                                    current_user.name }}</span>
+                                <span
+                                    style="color: #fbbf24; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 4px;">
+                                    <i class="fas fa-crown" style="font-size: 0.75rem;"></i>
+                                    Super Admin
+                                </span>
+                            </div>
+                        </div>
+                        {% elif current_user.role == 'admin' %}
+                        <!-- ADMIN - Style bleu professionnel avec badge -->
+                        <div class="user-profile"
+                            style="display: flex; align-items: center; gap: 12px; padding: 10px 18px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%); border-radius: 12px; backdrop-filter: blur(15px); border: 2px solid rgba(59, 130, 246, 0.6); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);">
+                            <div
+                                style="width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4); border: 2px solid #ffffff;">
+                                <i class="fas fa-user-shield" style="color: #ffffff; font-size: 1.1rem;"></i>
+                            </div>
+                            <div style="display: flex; flex-direction: column; line-height: 1.3;">
+                                <span style="color: #ffffff; font-weight: 700; font-size: 0.95rem;">{{ current_user.name
+                                    }}</span>
+                                <small style="color: rgba(147, 197, 253, 1); font-size: 0.75rem; font-weight: 600;">🛡️
+                                    Administrateur</small>
+                            </div>
+                        </div>
+                        {% elif current_user.role == 'gestionnaire' %}
+                        <!-- GESTIONNAIRE - Style violet moderne -->
+                        <div class="user-profile"
+                            style="display: flex; align-items: center; gap: 12px; padding: 10px 18px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(124, 58, 237, 0.2) 100%); border-radius: 12px; backdrop-filter: blur(15px); border: 2px solid rgba(139, 92, 246, 0.6); box-shadow: 0 6px 20px rgba(139, 92, 246, 0.3);">
+                            <div
+                                style="width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4); border: 2px solid #ffffff;">
+                                <i class="fas fa-briefcase" style="color: #ffffff; font-size: 1.1rem;"></i>
+                            </div>
+                            <div style="display: flex; flex-direction: column; line-height: 1.3;">
+                                <span style="color: #ffffff; font-weight: 700; font-size: 0.95rem;">{{ current_user.name
+                                    }}</span>
+                                <small style="color: rgba(196, 181, 253, 1); font-size: 0.75rem; font-weight: 600;">💼
+                                    Gestionnaire</small>
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- USER - Style vert simple et épuré -->
+                        <div class="user-profile"
+                            style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.15) 100%); border-radius: 999px; backdrop-filter: blur(12px); border: 2px solid rgba(34, 197, 94, 0.5); box-shadow: 0 6px 18px rgba(34, 197, 94, 0.2);">
+                            <div
+                                style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3); border: 2px solid #ffffff;">
+                                <i class="fas fa-user" style="color: #ffffff; font-size: 1.1rem;"></i>
+                            </div>
+                            <div style="display: flex; flex-direction: column; line-height: 1.3;">
+                                <span style="color: #ffffff; font-weight: 700; font-size: 0.95rem;">{{ current_user.name
+                                    }}</span>
+                                <small style="color: rgba(134, 239, 172, 1); font-size: 0.75rem; font-weight: 600;">👤
+                                    Utilisateur</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                        {% endif %}
+
+                        <!-- Animations CSS -->
+                        <style>
+                            @keyframes shine-profile {
+                                0% {
+                                    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+                                }
+
+                                100% {
+                                    transform: translateX(100%) translateY(100%) rotate(45deg);
+                                }
+                            }
+
+                            @keyframes pulse-crown {
+
+                                0%,
+                                100% {
+                                    transform: scale(1);
+                                }
+
+                                50% {
+                                    transform: scale(1.1);
+                                }
+                            }
+
+                            .user-profile {
+                                transition: all 0.3s ease;
+                            }
+
+                            .user-profile:hover {
+                                transform: translateY(-2px);
+                            }
+                        </style>
+
+                        <!-- Date et Heure (badge compact) -->
+                        <div
+                            style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: rgba(15, 23, 42, 0.25); border-radius: 999px; border: 1px solid rgba(248, 250, 252, 0.3); font-size: 0.75rem; color: #e5e7eb; white-space: nowrap;">
+                            <i class="far fa-calendar-alt" style="color: #fbbf24; font-size: 0.85rem;"></i>
+                            <span>{{ format_datetime(now(), '%d/%m/%Y') }}</span>
+                            <span style="opacity: 0.6;">•</span>
+                            <i class="far fa-clock" style="color: #fbbf24; font-size: 0.85rem;"></i>
+                            <span>{{ format_datetime(now(), '%H:%M') }}</span>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <a href="{{ url_for('logout') }}" id="logoutBtn" class="btn btn-sm"
+                                style="background: linear-gradient(135deg, #ff6b35 0%, #ff4757 100%); color: #ffffff; border: none; border-radius: 999px; font-weight: 600; padding: 5px 14px; box-shadow: 0 3px 10px rgba(255, 69, 87, 0.4); transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem;"
+                                onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 5px 14px rgba(255, 69, 87, 0.5)';"
+                                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(255, 69, 87, 0.4)';">
+                                <i class="fas fa-sign-out-alt" style="font-size: 0.85rem;"></i>
+                                <span>Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <main class="main-content">
+                    {% endif %}
+
+                    {% block content %}{% endblock %}
+                </main>
+        </div>
+    </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Flatpickr (Datepicker) -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainWrapper = document.getElementById('mainWrapper');
+
+            sidebar.classList.toggle('collapsed');
+            mainWrapper.classList.toggle('expanded');
+
+            // Sauvegarder l'état dans localStorage
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        }
+
+        // Restaurer l'état de la sidebar au chargement
+        document.addEventListener('DOMContentLoaded', function () {
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.getElementById('mainWrapper').classList.add('expanded');
+            }
+        });
+
+        // Auto-collapse sur mobile
+        function checkScreenSize() {
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.getElementById('mainWrapper').classList.add('expanded');
+            }
+        }
+
+        window.addEventListener('resize', checkScreenSize);
+        window.addEventListener('load', checkScreenSize);
+
+        // Gestionnaire unifié des messages flash avec SweetAlert2
+        document.addEventListener('DOMContentLoaded', function () {
+            const flashMessages = [
+                {% with messages = get_flashed_messages(with_categories = true) %}
+                    {% if messages %}
+        {% for category, message in messages %}
+        { category: '{{ category }}', message: '{{ message|replace("'", "\\'") }}' },
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+            ];
+
+        flashMessages.forEach(msg => {
+            const isSuccess = msg.category === 'success';
+            const isError = msg.category === 'error' || msg.category === 'danger';
+            const isWarning = msg.category === 'warning';
+            const isInfo = msg.category === 'info';
+
+            // On affiche tous les messages de succès, d'erreur ou d'avertissement
+            // Pas besoin de filtrer par 'allowedMessages' car cela cache les erreurs de validation
+            // MODIFICATION: Suppression des toasts de succès si la page le demande (pour éviter les doublons avec les modaux riches)
+            if (isSuccess && window.suppressSuccessToast) {
+                return;
+            }
+
+            if (isSuccess || isError || isWarning || isInfo) {
+                Swal.fire({
+                    title: isSuccess ? 'Succès !' : (isError ? 'Erreur' : (isWarning ? 'Attention' : 'Info')),
+                    text: msg.message.replace('✅ ', '').replace('❌ ', '').replace('⚠️ ', ''),
+                    icon: isSuccess ? 'success' : (isError ? 'error' : (isWarning ? 'warning' : 'info')),
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: (isSuccess || isInfo) ? 4000 : 7000, // Plus long pour les erreurs
+                    timerProgressBar: true,
+                    width: '320px',
+                    padding: '0.75rem',
+                    background: '#ffffff',
+                    customClass: {
+                        popup: 'shadow-sm border'
+                    }
+                });
+            }
+        });
+        });
+    </script>
+
+    <!-- CSRF Handler - Gestion automatique des tokens CSRF -->
+    <script src="{{ url_for('static', filename='js/csrf-handler.js') }}"></script>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

@@ -1,0 +1,68 @@
+﻿{# Macro pour afficher l'icône et la couleur selon la nature de prestation #}
+{% macro icon(nature) -%}
+    {% if nature == 'Fournitures de bureaux et documentation' %}
+        <i class="fas fa-folder-open me-1" style="color: #0d6efd;"></i>
+    {% elif nature == "Produits d'hygiène et de désinfection" %}
+        <i class="fas fa-soap me-1" style="color: #198754;"></i>
+    {% elif nature == 'Fournitures pour le matériel informatique' %}
+        <i class="fas fa-laptop me-1" style="color: #6f42c1;"></i>
+    {% elif nature == 'Articles de plomberies' %}
+        <i class="fas fa-wrench me-1" style="color: #fd7e14;"></i>
+    {% elif nature == 'Articles électriques' %}
+        <i class="fas fa-bolt me-1" style="color: #ffc107;"></i>
+    {% elif nature == 'Articles de la peinture' %}
+        <i class="fas fa-paint-roller me-1" style="color: #0dcaf0;"></i>
+    {% elif nature == 'Alimentation à usage Humaine' %}
+        <i class="fas fa-coffee me-1" style="color: #795548;"></i>
+    {% elif nature == 'Entretien bâtiments administratifs' %}
+        <i class="fas fa-building me-1" style="color: #fd7e14;"></i>
+    {% else %}
+        <i class="fas fa-tag me-1" style="color: #6c757d;"></i>
+    {% endif %}
+{%- endmacro %}
+
+{# Macro pour obtenir la couleur selon la nature #}
+{% macro color(nature) -%}
+    {%- if nature == 'Fournitures de bureaux et documentation' -%}
+        #0d6efd
+    {%- elif nature == "Produits d'hygiène et de désinfection" -%}
+        #198754
+    {%- elif nature == 'Fournitures pour le matériel informatique' -%}
+        #6f42c1
+    {%- elif nature == 'Articles de plomberies' -%}
+        #fd7e14
+    {%- elif nature == 'Articles électriques' -%}
+        #ffc107
+    {%- elif nature == 'Articles de la peinture' -%}
+        #0dcaf0
+    {%- elif nature == 'Alimentation à usage Humaine' -%}
+        #795548
+    {%- elif nature == 'Entretien bâtiments administratifs' -%}
+        #fd7e14
+    {%- else -%}
+        #6c757d
+    {%- endif -%}
+{%- endmacro %}
+
+{# Macro pour obtenir l'icône FontAwesome selon la nature #}
+{% macro icon_class(nature) -%}
+    {%- if nature == 'Fournitures de bureaux et documentation' -%}
+        fa-folder-open
+    {%- elif nature == "Produits d'hygiène et de désinfection" -%}
+        fa-soap
+    {%- elif nature == 'Fournitures pour le matériel informatique' -%}
+        fa-laptop
+    {%- elif nature == 'Articles de plomberies' -%}
+        fa-wrench
+    {%- elif nature == 'Articles électriques' -%}
+        fa-bolt
+    {%- elif nature == 'Articles de la peinture' -%}
+        fa-paint-roller
+    {%- elif nature == 'Alimentation à usage Humaine' -%}
+        fa-coffee
+    {%- elif nature == 'Entretien bâtiments administratifs' -%}
+        fa-building
+    {%- else -%}
+        fa-tag
+    {%- endif -%}
+{%- endmacro %}

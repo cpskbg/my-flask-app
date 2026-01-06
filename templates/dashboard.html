@@ -1,0 +1,620 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de Bord - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Styles unifiés pour la taille de police */
+    body {
+        font-size: 1.1rem; /* Taille de base augmentée */
+        line-height: 1.6;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        font-weight: 700;
+    }
+    
+    h1 { font-size: 2.2rem; }
+    h2 { font-size: 1.8rem; }
+    h3 { font-size: 1.5rem; }
+    h4 { font-size: 1.3rem; }
+    
+    .card-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+    }
+    
+    .card-text {
+        font-size: 1.1rem;
+    }
+    
+    .table {
+        font-size: 1.05rem;
+    }
+    
+    .btn {
+        font-size: 1.05rem;
+        padding: 0.5rem 1.25rem;
+    }
+    
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+    }
+    
+    .stat-label {
+        font-size: 1rem;
+        opacity: 0.9;
+    }
+    
+    /* Styles pour le sélecteur d'année (alignés au style Budget Details) */
+    .year-selector-nav {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .year-nav-btn {
+        padding: 4px 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border-radius: 6px;
+        border: none;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+    .year-nav-btn i { font-size: 0.7rem; }
+    .year-current-badge {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        font-size: 0.9rem;
+        padding: 6px 16px;
+        font-weight: 700;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        color: #ffffff;
+    }
+    .year-selector-container {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .year-selector-label { font-size: 0.75rem; color: #6b7280; }
+    .year-pill {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 0.8rem;
+        border: 1px solid rgba(30, 58, 138, 0.25);
+        background: #eef2ff;
+        color: #1e3a8a;
+        box-shadow: none;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+    .year-pill--active {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: #ffffff;
+        border-color: #3b82f6;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+        pointer-events: none;
+    }
+    .year-pill:not(.year-pill--active):hover {
+        background: #e0e7ff;
+        border-color: #3b82f6;
+        color: #1e3a8a;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Tableau de Bord</li>
+{% endblock %}
+
+{% block content %}
+
+<!-- Header Professionnel -->
+<div class="mb-4" style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(30, 58, 138, 0.3); position: relative;">
+    <!-- Bande décorative supérieure -->
+    <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 50%, #fbbf24 100%); background-size: 200% 100%; animation: shimmer 3s linear infinite;"></div>
+    
+    <div class="p-4">
+        <div class="row align-items-center">
+            <!-- Titre avec icône -->
+            <div class="col-md-6">
+                <div class="d-flex align-items-center gap-3">
+                    <!-- Icône dashboard avec effet -->
+                    <div style="position: relative;">
+                        <div style="position: absolute; inset: -6px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 16px; opacity: 0.4; filter: blur(10px);"></div>
+                        <div style="position: relative; width: 70px; height: 70px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(251, 191, 36, 0.4); border: 3px solid rgba(255, 255, 255, 0.3);">
+                            <i class="fas fa-chart-line" style="color: #ffffff; font-size: 2rem; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Titre et sous-titre -->
+                    <div>
+                        <h2 class="mb-2" style="color: #ffffff; font-weight: 800; font-size: 2rem; letter-spacing: 0.5px; text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); line-height: 1.2;">
+                            Tableau de Bord
+                        </h2>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <p class="mb-0" style="color: rgba(255, 255, 255, 0.9); font-size: 1rem; font-weight: 500; letter-spacing: 0.3px; margin-right: 1rem;">
+                                <i class="fas fa-shield-alt me-2" style="color: #fbbf24;"></i>
+                                Gestion Intégrée des Dotations et Fournitures
+                            </p>
+                            
+                            {% if years %}
+                            <!-- Sélecteur d'année (style Budget Details) -->
+                            <div class="year-selector-nav">
+                                {% if prev_year %}
+                                <a href="{{ url_for('dashboard', year=prev_year) }}" class="btn btn-sm year-nav-btn">
+                                    <i class="fas fa-chevron-left me-1"></i> {{ prev_year }}
+                                </a>
+                                {% endif %}
+                                <span class="badge year-current-badge">
+                                    <i class="fas fa-calendar-day me-1"></i>
+                                    {{ current_year }}
+                                </span>
+                                {% if next_year %}
+                                <a href="{{ url_for('dashboard', year=next_year) }}" class="btn btn-sm year-nav-btn">
+                                    {{ next_year }} <i class="fas fa-chevron-right ms-1"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex flex-wrap align-items-center gap-2 mt-2 year-selector-container">
+                                <span class="text-muted small year-selector-label">
+                                    <i class="far fa-calendar-alt me-1"></i>Années :
+                                </span>
+                                <a href="{{ url_for('dashboard') }}" class="btn btn-sm year-pill {% if not current_year %}year-pill--active{% endif %}">Toutes</a>
+                                {% for y in years %}
+                                <a href="{{ url_for('dashboard', year=y) }}" class="btn btn-sm year-pill {% if current_year == y %}year-pill--active{% endif %}" title="Voir l'année {{ y }}">{{ y }}</a>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions Rapides -->
+            <div class="col-md-6">
+                <div class="d-flex justify-content-end gap-3 flex-wrap">
+                    <!-- Sélecteur d'année -->
+                    {% if years %}
+                    <div class="year-selector-nav"></div>
+                    {% endif %}
+
+                    <a href="{{ url_for('items') }}" class="btn d-flex align-items-center gap-2" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: #fff; padding: 12px 24px; font-size: 0.95rem; font-weight: 600; border-radius: 10px; box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4); border: none; transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(59, 130, 246, 0.5)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(59, 130, 246, 0.4)';">
+                        <i class="fas fa-box" style="font-size: 1.1rem;"></i>
+                        <span>Articles</span>
+                    </a>
+                    <a href="{{ url_for('dotations') }}" class="btn d-flex align-items-center gap-2" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; padding: 12px 24px; font-size: 0.95rem; font-weight: 600; border-radius: 10px; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4); border: none; transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(16, 185, 129, 0.5)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(16, 185, 129, 0.4)';">
+                        <i class="fas fa-gift" style="font-size: 1.1rem;"></i>
+                        <span>Dotations</span>
+                    </a>
+                    <a href="{{ url_for('budget_details') }}" class="btn d-flex align-items-center gap-2" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: #fff; padding: 12px 24px; font-size: 0.95rem; font-weight: 600; border-radius: 10px; box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4); border: none; transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(139, 92, 246, 0.5)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(139, 92, 246, 0.4)';">
+                        <i class="fas fa-chart-pie" style="font-size: 1.1rem;"></i>
+                        <span>Budget</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- État Global du Stock -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm" style="border: none; border-radius: 12px; overflow: hidden;">
+            <div class="card-header py-3 d-flex align-items-center" style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); border: none;">
+                <h3 class="mb-0" style="color: #ffffff; font-weight: 800; font-size: 1.5rem; letter-spacing: 0.5px;">
+                    <i class="fas fa-chart-bar me-2"></i>ÉTAT GLOBAL DU STOCK
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                <div style="overflow-x: hidden;">
+                    <table class="table mb-0" style="width: 100%;">
+                        <thead>
+                            <tr style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);">
+                                <th style="text-align: center; color: #ffffff; font-weight: 700; text-transform: uppercase; font-size: 1rem; letter-spacing: 0.5px; padding: 14px 20px; border: none; vertical-align: middle;">Indicateur</th>
+                                <th style="text-align: center; color: #ffffff; font-weight: 700; text-transform: uppercase; font-size: 1rem; letter-spacing: 0.5px; padding: 14px 20px; border: none; vertical-align: middle;">Quantité</th>
+                                <th style="text-align: center; color: #ffffff; font-weight: 700; text-transform: uppercase; font-size: 1rem; letter-spacing: 0.5px; padding: 14px 20px; border: none; vertical-align: middle;">Pourcentage</th>
+                                <th style="text-align: center; color: #ffffff; font-weight: 700; text-transform: uppercase; font-size: 1rem; letter-spacing: 0.5px; padding: 14px 20px; border: none; vertical-align: middle;">Statut</th>
+                                <th style="text-align: center; color: #ffffff; font-weight: 700; text-transform: uppercase; font-size: 1rem; letter-spacing: 0.5px; padding: 14px 20px; border: none; vertical-align: middle;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid #e5e7eb; transition: all 0.2s ease;" onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor='#ffffff'">
+                                <td style="padding: 16px 20px; vertical-align: middle; text-align: center;">
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
+                                            <i class="fas fa-box" style="color: #ffffff; font-size: 1.1rem;"></i>
+                                        </div>
+                                        <strong style="color: #1e293b; font-size: 0.95rem;">Total Articles</strong>
+                                    </div>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    <div style="font-size: 1.8rem; font-weight: 800; color: #1e293b;">{{ total_items }}</div>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    <span style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: #ffffff; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">100%</span>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    <span style="background: #dbeafe; color: #1e40af; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;">BASE</span>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    <a href="{{ url_for('items') }}" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: #ffffff; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; text-decoration: none; display: inline-block; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(59, 130, 246, 0.3)';">Voir tous</a>
+                                </td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e5e7eb; transition: all 0.2s ease;" onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor='#ffffff'">
+                                <td style="padding: 16px 20px; vertical-align: middle; text-align: center;">
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+                                            <i class="fas fa-check-circle" style="color: #ffffff; font-size: 1.1rem;"></i>
+                                        </div>
+                                        <strong style="color: #1e293b; font-size: 0.95rem;">Stock Normal</strong>
+                                    </div>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    <div style="font-size: 1.8rem; font-weight: 800; color: #059669;">{{ items_in_stock }}</div>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    <span style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">{{ ((items_in_stock / total_items * 100) if total_items > 0 else 0)|round(1) }}%</span>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    {% if items_in_stock == total_items %}
+                                        <span style="background: #d1fae5; color: #065f46; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;">EXCELLENT</span>
+                                    {% elif items_in_stock > (total_items * 0.8) %}
+                                        <span style="background: #d1fae5; color: #065f46; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;">BON</span>
+                                    {% else %}
+                                        <span style="background: #fef3c7; color: #92400e; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;">MOYEN</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    <span style="color: #9ca3af; font-weight: 500;">-</span>
+                                </td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e5e7eb; transition: all 0.2s ease;" onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor='#ffffff'">
+                                <td style="padding: 16px 20px; vertical-align: middle; text-align: center;">
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">
+                                            <i class="fas fa-exclamation-triangle" style="color: #ffffff; font-size: 1.1rem;"></i>
+                                        </div>
+                                        <strong style="color: #1e293b; font-size: 0.95rem;">Stock Bas</strong>
+                                    </div>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    <div style="font-size: 1.8rem; font-weight: 800; color: #d97706;">{{ low_stock_items }}</div>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    <span style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #ffffff; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);">{{ ((low_stock_items / total_items * 100) if total_items > 0 else 0)|round(1) }}%</span>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    {% if low_stock_items == 0 %}
+                                        <span style="background: #d1fae5; color: #065f46; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;">OK</span>
+                                    {% elif low_stock_items <= 3 %}
+                                        <span style="background: #fef3c7; color: #92400e; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;">ATTENTION</span>
+                                    {% else %}
+                                        <span style="background: #fee2e2; color: #991b1b; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;">CRITIQUE</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    {% if low_stock_items > 0 %}
+                                        <a href="{{ url_for('low_stock') }}" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #ffffff; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; text-decoration: none; display: inline-block; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3); transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(245, 158, 11, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(245, 158, 11, 0.3)';">Gérer</a>
+                                    {% else %}
+                                        <span style="color: #9ca3af; font-weight: 500;">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e5e7eb; transition: all 0.2s ease;" onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor='#ffffff'">
+                                <td style="padding: 16px 20px; vertical-align: middle; text-align: center;">
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
+                                            <i class="fas fa-times-circle" style="color: #ffffff; font-size: 1.1rem;"></i>
+                                        </div>
+                                        <strong style="color: #1e293b; font-size: 0.95rem;">Ruptures de Stock</strong>
+                                    </div>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    <div style="font-size: 1.8rem; font-weight: 800; color: #dc2626;">{{ out_of_stock_items }}</div>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    <span style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #ffffff; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);">{{ ((out_of_stock_items / total_items * 100) if total_items > 0 else 0)|round(1) }}%</span>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    {% if out_of_stock_items == 0 %}
+                                        <span style="background: #d1fae5; color: #065f46; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;">OK</span>
+                                    {% else %}
+                                        <span style="background: #fee2e2; color: #991b1b; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;">URGENT</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    {% if out_of_stock_items > 0 %}
+                                        <a href="{{ url_for('low_stock') }}" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #ffffff; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; text-decoration: none; display: inline-block; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3); transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(239, 68, 68, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(239, 68, 68, 0.3)';">Urgent</a>
+                                    {% else %}
+                                        <span style="color: #9ca3af; font-weight: 500;">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%); border-bottom: 1px solid #e5e7eb; transition: all 0.2s ease;" onmouseover="this.style.background='linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)'" onmouseout="this.style.background='linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%)'">
+                                <td style="padding: 16px 20px; vertical-align: middle; text-align: center;">
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);">
+                                            <i class="fas fa-warehouse" style="color: #ffffff; font-size: 1.1rem;"></i>
+                                        </div>
+                                        <strong style="color: #1e293b; font-size: 0.95rem;">Quantité Totale</strong>
+                                    </div>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    <div style="font-size: 1.8rem; font-weight: 800; color: #7c3aed;">{{ total_quantity }}</div>
+                                    <small style="color: #64748b; font-weight: 600; font-size: 0.75rem;">unités</small>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    <span style="color: #9ca3af; font-weight: 500;">-</span>
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    {% if total_quantity > 0 %}
+                                        <span style="background: #ede9fe; color: #6b21a8; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;">ACTIF</span>
+                                    {% else %}
+                                        <span style="background: #e5e7eb; color: #4b5563; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;">VIDE</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center" style="padding: 16px 20px; vertical-align: middle;">
+                                    <a href="{{ url_for('export_stock_excel_form') }}" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; text-decoration: none; display: inline-block; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3); transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(16, 185, 129, 0.3)';">Export</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Résumé Global -->
+                <div class="row mt-5">
+                    <div class="col-md-8">
+                        {% if out_of_stock_items > 0 %}
+                        <!-- Message supprimé -->
+                        {% elif low_stock_items > 0 %}
+                        <!-- Message supprimé -->
+                        {% else %}
+                        <div class="alert alert-success" style="max-width: 600px; margin: 0; padding: 12px 16px; border-radius: 8px; color: #000; font-weight: 500;">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Excellent !</strong> Tous les stocks sont normaux.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Journal d'Audit - Compact et Cohérent -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm" style="border: none; border-radius: 12px; overflow: hidden;">
+            <!-- En-tête cohérent avec le style -->
+            <div class="card-header py-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0" style="color: #000; font-weight: 700; font-size: 1.2rem;">
+                        <i class="fas fa-history me-2"></i>Journal d'Audit
+                        <small style="font-size: 0.85rem; font-weight: 500; color: #000; opacity: 0.8; margin-left: 8px;">({{ recent_audit_logs|length if recent_audit_logs else 0 }} dernières entrées)</small>
+                    </h5>
+                </div>
+            </div>
+            
+            <!-- Corps compact avec timeline -->
+            <div class="card-body p-3" style="max-height: 400px; overflow-y: auto; background: #f8fafc;">
+                {% if recent_audit_logs %}
+                    <div class="timeline">
+                        {% for log in recent_audit_logs %}
+                            {% set border_color = '#6b7280' %}
+                            {% set icon_bg = '#6b7280' %}
+                            {% set icon_class = 'fa-info' %}
+                            
+                            {% if log.action == 'create' %}
+                                {% set border_color = '#3b82f6' %}
+                                {% set icon_bg = '#3b82f6' %}
+                                {% set icon_class = 'fa-plus' %}
+                            {% elif log.action == 'update' %}
+                                {% set border_color = '#f97316' %}
+                                {% set icon_bg = '#f97316' %}
+                                {% set icon_class = 'fa-pen' %}
+                            {% elif log.action == 'delete' %}
+                                {% set border_color = '#ef4444' %}
+                                {% set icon_bg = '#ef4444' %}
+                                {% set icon_class = 'fa-trash' %}
+                            {% endif %}
+                            
+                            {% set timeline_style = 'border-left: 3px solid ' ~ border_color ~ '; padding-left: 20px; margin-bottom: 16px; position: relative;' %}
+                            <div class="timeline-item" style="{{ timeline_style }}">
+                                <!-- Icône de l'action (plus petite) -->
+                                {% set icon_style = 'position: absolute; left: -11px; top: 4px; width: 24px; height: 24px; ' ~
+                                                  'border-radius: 50%; background: ' ~ icon_bg ~ '; ' ~
+                                                  'display: flex; align-items: center; justify-content: center; ' ~
+                                                  'border: 3px solid #ffffff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);' %}
+                                <div style="{{ icon_style }}">
+                                    <i class="fas {{ icon_class }}" style="color: #ffffff; font-size: 0.7rem;"></i>
+                                </div>
+                            
+                            <!-- Contenu du log (compact) -->
+                            <div style="background: #ffffff; padding: 12px 16px; border-radius: 8px; 
+                                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); border: 1px solid #e5e7eb;">
+
+                                <!-- Barre de couleur en haut (plus fine) -->
+                                {% set top_bar_color = '#6b7280' %}
+                                {% if log.action == 'create' %}
+                                    {% set top_bar_color = '#3b82f6' %}
+                                {% elif log.action == 'update' %}
+                                    {% set top_bar_color = '#f97316' %}
+                                {% elif log.action == 'delete' %}
+                                    {% set top_bar_color = '#ef4444' %}
+                                {% endif %}
+                                {% set top_bar_style = 'position: absolute; top: 0; left: 0; right: 0; height: 2px; ' ~
+                                                     'background: ' ~ top_bar_color ~ ';' %}
+                                <div style="{{ top_bar_style }}"></div>
+                                
+                                <!-- En-tête avec badges et date (compact) -->
+                                <div class="d-flex justify-content-between align-items-start mb-2" style="gap: 8px; flex-wrap: wrap;">
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <!-- Badge Action (plus petit) -->
+                                        {% set badge_bg = 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)' %}
+                                        {% set badge_shadow = 'rgba(107, 114, 128, 0.3)' %}
+                                        {% set badge_icon = 'fa-info-circle' %}
+                                        {% set badge_text = log.action %}
+                                        
+                                        {% if log.action == 'create' %}
+                                            {% set badge_bg = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' %}
+                                            {% set badge_shadow = 'rgba(59, 130, 246, 0.3)' %}
+                                            {% set badge_icon = 'fa-plus-circle' %}
+                                            {% set badge_text = 'Création' %}
+                                        {% elif log.action == 'update' %}
+                                            {% set badge_bg = 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' %}
+                                            {% set badge_shadow = 'rgba(249, 115, 22, 0.3)' %}
+                                            {% set badge_icon = 'fa-edit' %}
+                                            {% set badge_text = 'Modification' %}
+                                        {% elif log.action == 'delete' %}
+                                            {% set badge_bg = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' %}
+                                            {% set badge_shadow = 'rgba(239, 68, 68, 0.3)' %}
+                                            {% set badge_icon = 'fa-trash-alt' %}
+                                            {% set badge_text = 'Suppression' %}
+                                        {% endif %}
+                                        
+                                        {% set badge_style = 'font-size: 0.85rem; padding: 6px 12px; ' ~
+                                                         'background: ' ~ badge_bg ~ '; ' ~
+                                                         'text-transform: uppercase; ' ~
+                                                         'font-weight: 700; ' ~
+                                                         'border-radius: 6px; ' ~
+                                                         'letter-spacing: 0.5px; ' ~
+                                                         'box-shadow: 0 2px 8px ' ~ badge_shadow ~ '; ' ~
+                                                         'color: #ffffff;' %}
+                                        
+                                        <span class="badge" style="{{ badge_style }}">
+                                            <i class="fas {{ badge_icon }} me-1"></i>
+                                            {{ badge_text }}
+                                        </span>
+                                        
+                                        <!-- Badge Type -->
+                                        {% set entity_icon = 'fa-cube' %}
+                                        {% if log.entity_type == 'item' %}
+                                            {% set entity_icon = 'fa-box' %}
+                                        {% elif log.entity_type == 'dotation' %}
+                                            {% set entity_icon = 'fa-gift' %}
+                                        {% elif log.entity_type == 'reception' %}
+                                            {% set entity_icon = 'fa-truck' %}
+                                        {% elif log.entity_type == 'user' %}
+                                            {% set entity_icon = 'fa-user' %}
+                                        {% endif %}
+                                        
+                                        {% set entity_badge_style = 'background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%); ' ~
+                                                                 'font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; ' ~
+                                                                 'font-weight: 600; letter-spacing: 0.5px; ' ~
+                                                                 'box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3); ' ~
+                                                                 'color: #ffffff;' %}
+                                        
+                                        <span class="badge" style="{{ entity_badge_style }}">
+                                            <i class="fas {{ entity_icon }} me-1"></i>
+                                            {{ log.entity_type|upper if log.entity_type else 'AUTRE' }}
+                                        </span>
+                                    </div>
+                                    
+                                    <!-- Date/Heure -->
+                                    <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 6px 14px; border-radius: 8px; 
+                                        display: flex; align-items: center; gap: 8px; border: 1px solid #fbbf24; 
+                                        box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);">
+                                        <i class="far fa-clock" style="color: #92400e; font-size: 0.9rem;"></i>
+                                        <span style="color: #78350f; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.3px;">
+                                            {{ format_datetime(log.created_at, '%d/%m/%Y %H:%M') }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Nom de l'entité -->
+                                {% if log.entity_name %}
+                                    {% set entity_border_color = '#6b7280' %}
+                                    {% if log.action == 'create' %}
+                                        {% set entity_border_color = '#3b82f6' %}
+                                    {% elif log.action == 'update' %}
+                                        {% set entity_border_color = '#f97316' %}
+                                    {% elif log.action == 'delete' %}
+                                        {% set entity_border_color = '#ef4444' %}
+                                    {% endif %}
+                                    {% set entity_style = 'color: #1e293b; font-weight: 800; font-size: 1.1rem; margin-bottom: 12px; ' ~
+                                                       'display: flex; align-items: center; gap: 10px; padding: 10px 14px; ' ~
+                                                       'background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); ' ~
+                                                       'border-radius: 8px; border-left: 4px solid ' ~ entity_border_color ~ ';' %}
+                                    <div style="{{ entity_style }}">
+                                    {% set tag_icon_color = '#6b7280' %}
+                                    {% if log.action == 'create' %}{% set tag_icon_color = '#3b82f6' %}{% endif %}
+                                    {% if log.action == 'update' %}{% set tag_icon_color = '#f97316' %}{% endif %}
+                                    {% if log.action == 'delete' %}{% set tag_icon_color = '#ef4444' %}{% endif %}
+                                    <i class="fas fa-tag" style="color: {{ tag_icon_color }}; font-size: 1rem;"></i>
+                                    <span>{{ log.entity_name }}</span>
+                                </div>
+                                {% endif %}
+
+                                <!-- Description -->
+                                {% if log.description %}
+                                <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; 
+                                    border-left: 3px solid #cbd5e1; margin-bottom: 12px;">
+                                    <p style="margin: 0; color: #475569; font-size: 0.95rem; line-height: 1.6; font-weight: 500;">
+                                        <i class="fas fa-info-circle me-2" style="color: #64748b;"></i>
+                                        {{ log.description }}
+                                    </p>
+                                </div>
+                                {% endif %}
+
+                                <!-- Footer avec utilisateur -->
+                                <div style="border-top: 2px solid #f1f5f9; padding-top: 12px; margin-top: 12px; 
+                                    display: flex; align-items: center; gap: 10px;">
+                                    <div style="width: 36px; height: 36px; border-radius: 50%; 
+                                        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); 
+                                        display: flex; align-items: center; justify-content: center; 
+                                        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); border: 2px solid #dbeafe;">
+                                        <i class="fas fa-user" style="color: #ffffff; font-size: 0.95rem;"></i>
+                                    </div>
+                                    <div>
+                                        <div style="color: #1e293b; font-size: 0.95rem; font-weight: 700;">
+                                            {{ log.user_name or 'Système' }}
+                                        </div>
+                                        <div style="color: #64748b; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;">
+                                            Utilisateur
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <!-- État vide -->
+                    <div class="text-center py-5">
+                        <div style="width: 140px; height: 140px; margin: 0 auto 24px; 
+                            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); 
+                            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                            box-shadow: 0 12px 32px rgba(59, 130, 246, 0.3); border: 4px solid #dbeafe;">
+                            <i class="fas fa-clipboard-list" style="font-size: 4rem; color: #ffffff;"></i>
+                        </div>
+                        <h5 style="color: #1e293b; font-weight: 800; margin-bottom: 12px; font-size: 1.3rem;">Aucune activité récente</h5>
+                        <p style="color: #64748b; font-size: 1rem; margin: 0; font-weight: 500;">
+                            Les actions réalisées dans le système apparaîtront ici.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes emergencyStripe {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+}
+
+@keyframes shimmer {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+}
+</style>
+
+
+{% endblock %}

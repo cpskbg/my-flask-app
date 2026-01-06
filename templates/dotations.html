@@ -1,0 +1,1718 @@
+{% extends "base.html" %}
+
+{% block title %}Dotations - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block content %}
+<script>window.suppressSuccessToast = true;</script>
+<style>
+    /* Animations pour les notifications */
+    @keyframes slideInDown {
+        from {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOutUp {
+        from {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        to {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+    }
+
+    /* Styles pour les notifications améliorées */
+    #notification-area .alert {
+        border-radius: 12px;
+        border: 2px solid transparent;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        font-size: 15px;
+        padding: 16px 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+    }
+
+    #notification-area .alert:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    #notification-area .alert-success {
+        background: linear-gradient(135deg, rgba(212, 237, 218, 0.95) 0%, rgba(195, 230, 203, 0.95) 100%);
+        color: #0f5132;
+        border: 2px solid #28a745;
+        backdrop-filter: blur(15px);
+    }
+
+    #notification-area .alert-danger {
+        background: linear-gradient(135deg, rgba(248, 215, 218, 0.95) 0%, rgba(245, 198, 203, 0.95) 100%);
+        color: #842029;
+        border: 2px solid #dc3545;
+        backdrop-filter: blur(15px);
+    }
+
+    #notification-area .alert-info {
+        background: linear-gradient(135deg, rgba(209, 236, 241, 0.95) 0%, rgba(190, 229, 235, 0.95) 100%);
+        color: #055160;
+        border: 2px solid #0dcaf0;
+        backdrop-filter: blur(15px);
+    }
+
+    #notification-area .alert-warning {
+        background: linear-gradient(135deg, rgba(255, 243, 205, 0.95) 0%, rgba(255, 234, 167, 0.95) 100%);
+        color: #664d03;
+        border: 2px solid #ffc107;
+        backdrop-filter: blur(15px);
+    }
+
+    /* Badges pour les icônes dans les notifications */
+    #notification-area .alert i {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+        font-size: 14px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    #notification-area .alert-success i {
+        color: #28a745;
+        background: rgba(40, 167, 69, 0.1);
+        border: 2px solid #28a745;
+    }
+
+    #notification-area .alert-danger i {
+        color: #dc3545;
+        background: rgba(220, 53, 69, 0.1);
+        border: 2px solid #dc3545;
+    }
+
+    #notification-area .alert-info i {
+        color: #0dcaf0;
+        background: rgba(13, 202, 240, 0.1);
+        border: 2px solid #0dcaf0;
+    }
+
+    #notification-area .alert-warning i {
+        color: #ffc107;
+        background: rgba(255, 193, 7, 0.1);
+        border: 2px solid #ffc107;
+    }
+
+    /* Animation de sortie */
+    #notification-area .alert.fade {
+        animation: slideOutUp 0.3s ease-in;
+    }
+
+    /* Animation de pulsation pour les notifications importantes */
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.02);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    #notification-area .alert.pulse {
+        animation: pulse 2s ease-in-out 3;
+    }
+
+    /* Effet d'ombre plus prononcé pour les notifications de succès */
+    #notification-area .alert-success {
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    }
+
+    #notification-area .alert-danger {
+        box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+    }
+
+    /* Styles pour le modal de suppression */
+    #deleteModal {
+        z-index: 9999 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    #deleteModal .modal-backdrop {
+        z-index: 9998 !important;
+    }
+
+    #deleteModal .modal-dialog {
+        margin: 0 auto !important;
+        max-width: 500px;
+        position: relative;
+        top: 0 !important;
+        transform: none !important;
+    }
+
+    #deleteModal .modal-content {
+        background-color: white !important;
+        color: #333 !important;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        border: 1px solid #dee2e6;
+    }
+
+    #deleteModal .modal-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        border-radius: 8px 8px 0 0;
+    }
+
+    #deleteModal .modal-title {
+        color: #333 !important;
+        font-weight: 600;
+    }
+
+    #deleteModal .modal-body {
+        padding: 20px;
+    }
+
+    #deleteModal .modal-body p {
+        color: #333 !important;
+        margin-bottom: 15px;
+    }
+
+    #deleteModal .alert-info {
+        background-color: #d1ecf1 !important;
+        border-color: #bee5eb !important;
+        color: #0c5460 !important;
+    }
+
+    #deleteModal .modal-footer {
+        background-color: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+        border-radius: 0 0 8px 8px;
+    }
+
+    /* Centrage absolu du modal */
+    #deleteModal {
+        z-index: 9999 !important;
+    }
+
+    #deleteModal.show {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        padding: 0 !important;
+    }
+
+    /* Backdrop personnalisé pour s'harmoniser avec le thème */
+    #deleteModal+.modal-backdrop,
+    .modal-backdrop.show {
+        background-color: rgba(0, 0, 0, 0.4) !important;
+        backdrop-filter: blur(2px);
+        z-index: 9998 !important;
+    }
+
+    #deleteModal .modal-dialog {
+        position: relative !important;
+        margin: 0 !important;
+        transform: none !important;
+        max-width: 350px !important;
+        width: 80% !important;
+    }
+
+    /* Ajustements responsive pour la taille du modal compact */
+    @media (min-width: 768px) {
+        #deleteModal .modal-dialog {
+            width: 320px !important;
+        }
+    }
+
+    @media (min-width: 992px) {
+        #deleteModal .modal-dialog {
+            width: 340px !important;
+        }
+    }
+
+    @media (max-width: 576px) {
+        #deleteModal .modal-dialog {
+            width: 90% !important;
+            max-width: 300px !important;
+        }
+    }
+
+    /* S'assurer que le modal se ferme correctement */
+    #deleteModal:not(.show) {
+        display: none !important;
+    }
+
+    /* =====================
+   STYLE SIDEBAR POUR CARTES DOTATIONS
+   ===================== */
+
+    .dotation-stat-card {
+        position: relative;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .dotation-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    .dotation-stat-card::after {
+        content: "";
+        position: absolute;
+        right: -30px;
+        top: -20px;
+        width: 110px;
+        height: 110px;
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 50%;
+        filter: blur(1px);
+    }
+
+    .dotation-stat-card .stat-info {
+        position: relative;
+        z-index: 1;
+    }
+
+    .dotation-stat-card .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+    }
+
+    .dotation-stat-card .stat-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        opacity: 0.9;
+    }
+
+    .dotation-stat-card .stat-icon {
+        position: relative;
+        z-index: 1;
+        opacity: 0.75;
+        font-size: 1.5rem;
+    }
+
+    .dotation-stat-card[data-variant="total"] {
+        background: linear-gradient(135deg, #FFEB3B 0%, #FDD835 100%);
+        box-shadow: 0 8px 20px rgba(255, 235, 59, 0.4);
+        color: #000 !important;
+    }
+
+    .dotation-stat-card[data-variant="total"] .stat-value,
+    .dotation-stat-card[data-variant="total"] .stat-label,
+    .dotation-stat-card[data-variant="total"] .stat-icon {
+        color: #000 !important;
+    }
+
+    .dotation-stat-card[data-variant="total"]:hover {
+        box-shadow: 0 12px 30px rgba(255, 235, 59, 0.5);
+        transform: translateY(-2px) scale(1.01);
+    }
+
+    .dotation-stat-card[data-variant="progress"] {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
+    }
+
+    .dotation-stat-card[data-variant="progress"]:hover {
+        box-shadow: 0 12px 30px rgba(245, 158, 11, 0.5);
+        transform: translateY(-2px) scale(1.01);
+    }
+
+    .dotation-stat-card[data-variant="validated"] {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .dotation-stat-card[data-variant="validated"]:hover {
+        box-shadow: 0 12px 30px rgba(16, 185, 129, 0.5);
+        transform: translateY(-2px) scale(1.01);
+    }
+
+    .dotation-stat-card[data-variant="delivered"] {
+        background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%);
+        box-shadow: 0 8px 20px rgba(0, 188, 212, 0.4);
+    }
+
+    .dotation-stat-card[data-variant="delivered"]:hover {
+        box-shadow: 0 12px 30px rgba(0, 188, 212, 0.5);
+        transform: translateY(-2px) scale(1.01);
+    }
+</style>
+<!-- Zone de notification non-bloquante -->
+<div id="notification-area" class="mb-3" style="position: relative; z-index: 1000;">
+    <!-- Les notifications apparaîtront ici -->
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded-3"
+    style="background: linear-gradient(135deg, rgba(255, 235, 59, 0.15) 0%, rgba(0, 188, 212, 0.15) 100%); border: 1px solid rgba(255, 235, 59, 0.3); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center"
+            style="width: 48px; height: 48px; background: linear-gradient(135deg, #FFEB3B 0%, #00BCD4 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(255, 235, 59, 0.4);">
+            <i class="fas fa-gift" style="color: #fff; font-size: 1.4rem;"></i>
+        </div>
+        <h4 class="mb-0"
+            style="font-weight: 700; color: #000; letter-spacing: 0.5px; font-size: 1.4rem; text-shadow: 0 2px 4px rgba(255, 255, 255, 0.5);">
+            Dotations</h4>
+    </div>
+    <div class="d-flex gap-2">
+        {% if session.get('user_id') %}
+        {% set current_user = get_user_by_id(session.get('user_id')) %}
+        {% if current_user and current_user.role != 'user' %}
+        <button type="button" class="btn btn-danger d-flex align-items-center gap-2" onclick="showDeleteAllModal()"
+            title="Supprimer toutes les dotations"
+            style="padding: 8px 16px; font-size: 0.9rem; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); transition: all 0.3s ease; white-space: nowrap;">
+            <i class="fas fa-trash-alt" style="font-size: 0.95rem;"></i>
+            <span>Supprimer Tout</span>
+        </button>
+        <a href="{{ url_for('add_dotation') }}" class="btn btn-primary d-flex align-items-center gap-2"
+            style="padding: 8px 16px; font-size: 0.9rem; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); transition: all 0.3s ease; text-decoration: none; white-space: nowrap;">
+            <i class="fas fa-plus" style="font-size: 0.95rem;"></i>
+            <span>Nouvelle Dotation</span>
+        </a>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filtre par année des dotations -->
+<div class="card mb-3">
+    <div class="card-body py-2"
+        style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.06) 0%, rgba(118, 75, 162, 0.12) 100%);">
+        <div class="row align-items-center g-2">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center justify-content-center"
+                        style="width: 42px; height: 42px; border-radius: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);">
+                        <i class="fas fa-calendar-alt" style="color: #fff; font-size: 1.1rem;"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight: 700; font-size: 0.95rem; color: #111827;">Filtrer par année des
+                            dotations</div>
+                        <div style="font-size: 0.8rem; color: #4b5563;">
+                            Choisissez une année ci-dessous pour filtrer les dotations.
+                            {% if current_year %}
+                            <span class="badge bg-primary ms-1" style="font-size: 0.75rem;">{{ current_year }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mt-2 mt-md-0">
+                {% if years %}
+                {% if current_year %}
+                <!-- Navigation année précédente / suivante -->
+                <div class="d-flex align-items-center gap-2 mb-2 justify-content-md-end flex-wrap year-selector-nav">
+                    {% if prev_year %}
+                    <a href="{{ url_for('dotations', year=prev_year) }}" class="btn btn-sm year-nav-btn">
+                        <i class="fas fa-chevron-left me-1"></i> {{ prev_year }}
+                    </a>
+                    {% endif %}
+                    <span class="badge year-current-badge">
+                        {{ current_year }}
+                    </span>
+                    {% if next_year %}
+                    <a href="{{ url_for('dotations', year=next_year) }}" class="btn btn-sm year-nav-btn">
+                        {{ next_year }} <i class="fas fa-chevron-right ms-1"></i>
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Liste des années sous forme de pills -->
+                <div class="d-flex flex-wrap align-items-center gap-2 justify-content-md-end year-selector-container">
+                    <!-- Bouton Toutes les années -->
+                    <a href="{{ url_for('dotations') }}"
+                        class="btn btn-sm year-pill {% if not current_year %}year-pill--active{% endif %}">
+                        Toutes
+                    </a>
+                    {% for y in years %}
+                    <a href="{{ url_for('dotations', year=y) }}"
+                        class="btn btn-sm year-pill {% if current_year == y %}year-pill--active{% endif %}"
+                        title="Voir l'année {{ y }}">
+                        {{ y }}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques rapides avec style sidebar -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white dotation-stat-card" data-variant="total" style="border: none;">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between">
+                    <div class="stat-info">
+                        <h4 class="card-title mb-0 stat-value">{{ dotations.total }}</h4>
+                        <small class="card-text stat-label">Total Dotations</small>
+                    </div>
+                    <div class="align-self-center stat-icon">
+                        <i class="fas fa-gift fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white dotation-stat-card" data-variant="progress" style="border: none;">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between">
+                    <div class="stat-info">
+                        <h4 class="card-title mb-0 stat-value">{{ dotations.items|selectattr('statut', 'equalto',
+                            'en_cours')|list|length }}</h4>
+                        <small class="card-text stat-label">En Cours</small>
+                    </div>
+                    <div class="align-self-center stat-icon">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white dotation-stat-card" data-variant="validated" style="border: none;">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between">
+                    <div class="stat-info">
+                        <h4 class="card-title mb-0 stat-value">{{ dotations.items|selectattr('statut', 'equalto',
+                            'validee')|list|length }}</h4>
+                        <small class="card-text stat-label">Validées</small>
+                    </div>
+                    <div class="align-self-center stat-icon">
+                        <i class="fas fa-check fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white dotation-stat-card" data-variant="delivered" style="border: none;">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between">
+                    <div class="stat-info">
+                        <h4 class="card-title mb-0 stat-value">{{ dotations.items|selectattr('statut', 'equalto',
+                            'livree')|list|length }}</h4>
+                        <small class="card-text stat-label">Livrées</small>
+                    </div>
+                    <div class="align-self-center stat-icon">
+                        <i class="fas fa-truck fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des dotations -->
+<div class="card">
+    <div class="card-header py-2" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <h4 class="mb-0" style="color: #000; font-weight: 700; font-size: 1.3rem;"><i class="fas fa-list me-2"></i>Liste
+            des Dotations ({{ dotations.total }})</h4>
+    </div>
+    <div class="card-body p-0">
+        {% if dotations.items %}
+        <div style="overflow-x: hidden;">
+            <table class="table table-hover table-sm mb-0" style="table-layout: fixed; width: 100%;">
+                <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <tr>
+                        <th
+                            style="text-align: center; width: 5%; font-size: 1rem; padding: 12px 8px; font-weight: 700; vertical-align: middle; color: #000;">
+                            N°</th>
+                        <th
+                            style="text-align: center; width: 18%; font-size: 1rem; padding: 12px 8px; font-weight: 700; vertical-align: middle; color: #000;">
+                            UNITÉ</th>
+                        <th
+                            style="text-align: center; width: 18%; font-size: 1rem; padding: 12px 8px; font-weight: 700; vertical-align: middle; color: #000;">
+                            NATURE</th>
+                        <th
+                            style="text-align: center; width: 6%; font-size: 1rem; padding: 12px 8px; font-weight: 700; vertical-align: middle; color: #000;">
+                            QTÉ<br><small style="font-size: 0.75rem; color: #000;">(ART.)</small></th>
+                        <th
+                            style="text-align: center; width: 9%; font-size: 1rem; padding: 12px 8px; font-weight: 700; vertical-align: middle; color: #000;">
+                            COÛT TTC<br><small style="font-size: 0.75rem; color: #000;">(MAD)</small></th>
+                        <th
+                            style="text-align: center; width: 9%; font-size: 1rem; padding: 12px 8px; font-weight: 700; vertical-align: middle; color: #000;">
+                            DATE</th>
+                        <th
+                            style="text-align: center; width: 7%; font-size: 1rem; padding: 12px 8px; font-weight: 700; vertical-align: middle; color: #000;">
+                            STATUT</th>
+                        <th
+                            style="text-align: center; width: 12%; font-size: 1rem; padding: 12px 8px; font-weight: 700; vertical-align: middle; color: #000;">
+                            ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dotation in dotations.items %}
+                    {% set total_ht = namespace(value=0) %}
+                    {% set total_ttc = namespace(value=0) %}
+                    {% for item in dotation.items %}
+                    {% set derniere_reception = item.item.receptions|sort(attribute='created_at', reverse=True)|first %}
+                    {% set pu_ht = derniere_reception.prix_unitaire_ht if derniere_reception else 0 %}
+                    {% set pu_ttc = (item.prix_unitaire if item.prix_unitaire and item.prix_unitaire > 0 else
+                    (derniere_reception.prix_unitaire_ttc if derniere_reception else 0)) %}
+                    {% set total_ht.value = total_ht.value + (pu_ht * item.quantite_dotee) %}
+                    {% set total_ttc.value = total_ttc.value + (pu_ttc * item.quantite_dotee) %}
+                    {% endfor %}
+                    <tr style="border-bottom: 1px solid #e9ecef;">
+                        <td style="text-align: center; vertical-align: middle; padding: 8px 4px;">
+                            <span class="badge bg-primary" style="font-size: 0.7rem; padding: 3px 6px;">{{
+                                dotation.numero_dotation.split('-')[2] }}</span>
+                        </td>
+                        <td style="text-align: center; vertical-align: middle; padding: 8px 4px;">
+                            <div style="font-size: 0.75rem; line-height: 1.2;">
+                                {% if 'CENTRE DE SECOURS' in dotation.unite.nom.upper() %}
+                                <strong>C.S {{ dotation.unite.nom.replace('CENTRE DE SECOURS ', '').title() }}</strong>
+                                {% else %}
+                                <strong>{{ dotation.unite.nom }}</strong>
+                                {% endif %}
+                                {% if dotation.service %}
+                                <br><small class="text-muted" style="font-size: 0.65rem;">{{ dotation.service.nom
+                                    }}</small>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td style="text-align: center; vertical-align: middle; padding: 8px 6px;">
+                            <span class="badge bg-secondary"
+                                style="font-size: 0.75rem; padding: 4px 8px; white-space: normal; line-height: 1.3;">{{
+                                dotation.categorie }}</span>
+                        </td>
+                        <td style="text-align: center; vertical-align: middle; padding: 8px 4px;">
+                            <span class="badge bg-info" style="font-size: 0.8rem; padding: 4px 6px;">{{
+                                dotation.items|length }}</span>
+                        </td>
+                        <td style="text-align: center; vertical-align: middle; padding: 8px 4px;">
+                            <strong style="font-size: 0.85rem; color: #198754;">{{ '%.2f'|format(total_ttc.value)
+                                }}</strong>
+                        </td>
+                        <td style="text-align: center; vertical-align: middle; padding: 8px 4px; font-size: 0.7rem;">
+                            <div>{{ format_datetime(dotation.date_dotation, '%d/%m/%Y') }}</div>
+                            <small class="text-muted" style="font-size: 0.65rem;">{{
+                                format_datetime(dotation.date_dotation, '%H:%M') }}</small>
+                        </td>
+                        <td style="text-align: center; vertical-align: middle; padding: 8px 4px;">
+                            {% if dotation.statut == 'en_cours' %}
+                            <button class="btn btn-sm btn-warning"
+                                onclick="updateStatus('{{ dotation.id }}', 'validee')" title="Valider la dotation">
+                                <i class="fas fa-check me-1"></i> EN COURS
+                            </button>
+                            {% elif dotation.statut == 'validee' %}
+                            <button class="btn btn-sm btn-success" onclick="updateStatus('{{ dotation.id }}', 'livree')"
+                                title="Marquer comme livrée">
+                                <i class="fas fa-truck me-1"></i> VALIDÉE
+                            </button>
+                            {% elif dotation.statut == 'livree' %}
+                            {% if dotation.decharge_signee_path %}
+                            <a href="{{ url_for('telecharger_decharge_signee', dotation_id=dotation.id) }}"
+                                class="btn btn-sm btn-success" title="Télécharger la décharge signée">
+                                <i class="fas fa-file-signature me-1"></i> SIGNÉE
+                            </a>
+                            {% else %}
+                            <button class="btn btn-sm btn-warning"
+                                onclick="showImportDechargeModal('{{ dotation.id }}', '{{ dotation.numero_dotation }}')"
+                                title="Importer la décharge signée">
+                                <i class="fas fa-upload me-1"></i> IMPORTER
+                            </button>
+                            {% endif %}
+                            <a href="{{ url_for('generate_decharge', dotation_id=dotation.id) }}"
+                                class="btn btn-sm btn-info" title="Générer la décharge">
+                                <i class="fas fa-file-pdf me-1"></i> LIVRÉE
+                            </a>
+                            {% endif %}
+                        </td>
+                        <td class="text-center" style="vertical-align: middle; padding: 8px 2px;">
+                            {% if session.get('user_id') %}
+                            {% set current_user = get_user_by_id(session.get('user_id')) %}
+                            {% if current_user and current_user.role != 'user' %}
+                            <!-- Boutons d'action (Admin et Gestionnaire uniquement) -->
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-primary"
+                                    onclick="viewDotation('{{ dotation.id }}')" title="Voir détails">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% if dotation.statut == 'livree' %}
+                                <a href="{{ url_for('edit_dotation', dotation_id=dotation.id) }}"
+                                    class="btn btn-sm btn-outline-warning disabled"
+                                    title="Modification non autorisée pour les dotations livrées"
+                                    onclick="event.preventDefault(); return false;">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('edit_dotation', dotation_id=dotation.id) }}"
+                                    class="btn btn-sm btn-outline-warning" title="Modifier les quantités">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% endif %}
+                                {% if dotation.statut != 'livree' %}
+                                <button class="btn btn-sm btn-outline-danger delete-btn"
+                                    data-dotation-id="{{ dotation.id }}"
+                                    data-dotation-numero="{{ dotation.numero_dotation }}" title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% else %}
+                                <span class="btn btn-sm btn-outline-secondary disabled"
+                                    title="Suppression impossible - Dotation livrée">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <!-- Badge Consultation pour les utilisateurs simples -->
+                            <span class="badge"
+                                style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4); display: inline-flex; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 0.2px; border: 1px solid rgba(255, 255, 255, 0.3); white-space: nowrap;">
+                                <i class="fas fa-eye" style="font-size: 0.85rem;"></i>
+                                <span>Consult.</span>
+                            </span>
+                            {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if dotations.pages > 1 %}
+        <nav aria-label="Dotations pagination">
+            <ul class="pagination justify-content-center">
+                {% if dotations.has_prev %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('dotations', page=dotations.prev_num, year=current_year) }}">Précédent</a>
+                </li>
+                {% endif %}
+
+                {% for page_num in dotations.iter_pages() %}
+                {% if page_num %}
+                {% if page_num != dotations.page %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('dotations', page=page_num, year=current_year) }}">{{ page_num
+                        }}</a>
+                </li>
+                {% else %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_num }}</span>
+                </li>
+                {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if dotations.has_next %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('dotations', page=dotations.next_num, year=current_year) }}">Suivant</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-gift fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">Aucune dotation trouvée</h4>
+            <p class="text-muted">Commencez par créer votre première dotation.</p>
+            <a href="{{ url_for('add_dotation') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Créer Première Dotation
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal de détails des articles -->
+<div class="modal fade" id="articlesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Articles de la dotation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="articlesModalBody">
+                <!-- Contenu chargé dynamiquement -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); border-radius: 12px; box-shadow: 0 10px 40px rgba(220, 53, 69, 0.4); border: none; overflow: hidden;">
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+                <h5
+                    style="color: #fff; font-size: 0.95rem; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>Confirmer la suppression
+                </h5>
+            </div>
+            <div style="padding: 20px 25px 15px 25px; color: #fff;">
+                <div
+                    style="text-align: center; margin-bottom: 12px; font-size: 0.95rem; line-height: 1.5; font-weight: 500;">
+                    <div>Vous êtes sur le point de supprimer cette dotation</div>
+                    <div>Êtes-vous sûr ?</div>
+                </div>
+                <div
+                    style="background: rgba(255, 255, 255, 0.15); padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.25);">
+                    <div style="font-size: 0.8rem; margin-bottom: 3px; opacity: 0.9;">
+                        <i class="fas fa-gift" style="margin-right: 5px;"></i>Dotation N°
+                    </div>
+                    <div style="font-size: 1rem; font-weight: 700; letter-spacing: 0.5px;" id="deleteNumero"></div>
+                </div>
+                <div
+                    style="background: rgba(0, 0, 0, 0.2); padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; line-height: 1.4; text-align: center; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <div><i class="fas fa-info-circle" style="margin-right: 5px;"></i>Action irréversible - Suppression
+                        de</div>
+                    <div>toutes les données associées</div>
+                </div>
+            </div>
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <form autocomplete="off" id="deleteForm" method="POST" style="margin: 0; flex: 1;">
+                    <button type="submit" class="btn btn-warning"
+                        style="width: 100%; padding: 8px 20px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; background: #ffc107; border: none; color: #000; box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4); text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fas fa-check me-1"></i>Confirmer
+                    </button>
+                </form>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"
+                    style="flex: 1; padding: 8px 20px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; background: rgba(255, 255, 255, 0.95); border: none; color: #000; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-times me-1"></i>Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmation de suppression TOUT -->
+<div class="modal fade" id="deleteAllModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%); border-radius: 12px; box-shadow: 0 10px 40px rgba(220, 53, 69, 0.4); border: none; overflow: hidden;">
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+                <h5
+                    style="color: #fff; font-size: 0.95rem; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>DANGER - SUPPRESSION GLOBALE
+                </h5>
+            </div>
+            <div style="padding: 20px 25px 15px 25px; color: #fff;">
+                <div
+                    style="text-align: center; margin-bottom: 15px; font-size: 1rem; line-height: 1.5; font-weight: 600;">
+                    <div>ATTENTION : ACTION IRRÉVERSIBLE</div>
+                    <div style="font-size: 0.9rem; font-weight: 400; margin-top: 5px;">Vous allez supprimer <span
+                            style="text-decoration: underline; font-weight: 700;">TOUTES</span> les dotations de la base
+                        de données.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="deleteAllConfirmInput" class="form-label" style="font-size: 0.85rem; opacity: 0.9;">Pour
+                        confirmer, tapez <strong>SUPPRIMER TOUT</strong> ci-dessous :</label>
+                    <input type="text" class="form-control" id="deleteAllConfirmInput"
+                        style="text-align: center; font-weight: 700; text-transform: uppercase;">
+                    <div id="deleteAllError" class="invalid-feedback"
+                        style="color: #ffcccc; font-weight: 600; display: none;">
+                        Veuillez taper exactement "SUPPRIMER TOUT"
+                    </div>
+                </div>
+            </div>
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <button type="button" class="btn btn-warning" onclick="executeDeleteAll()"
+                    style="flex: 1; padding: 8px 20px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; background: #ffc107; border: none; color: #000; box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-trash-alt me-1"></i>SUPPRIMER TOUT
+                </button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"
+                    style="flex: 1; padding: 8px 20px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; background: rgba(255, 255, 255, 0.95); border: none; color: #000; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-times me-1"></i>Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de succès de création -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 12px; box-shadow: 0 10px 40px rgba(40, 167, 69, 0.4); border: none; overflow: hidden;">
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                <h5
+                    style="color: #fff; font-size: 0.95rem; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-check-circle" style="margin-right: 8px;"></i>Dotation Créée avec Succès
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" />
+            </div>
+            <div style="padding: 20px 25px 15px 25px; color: #fff;">
+                <div
+                    style="text-align: center; margin-bottom: 12px; font-size: 0.95rem; line-height: 1.5; font-weight: 500;">
+                    <div>La dotation a été créée et enregistrée</div>
+                    <div>avec succès dans le système</div>
+                </div>
+                <div
+                    style="background: rgba(255, 255, 255, 0.15); padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.25);">
+                    <div style="font-size: 0.8rem; margin-bottom: 3px; opacity: 0.9;">
+                        <i class="fas fa-gift" style="margin-right: 5px;"></i>Dotation N°
+                    </div>
+                    <div style="font-size: 1rem; font-weight: 700; letter-spacing: 0.5px;" id="successNumero"></div>
+                </div>
+                <div
+                    style="background: rgba(0, 0, 0, 0.2); padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; line-height: 1.4; text-align: center; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <div><i class="fas fa-info-circle" style="margin-right: 5px;"></i><span id="successDetails"></span>
+                    </div>
+                </div>
+            </div>
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"
+                    style="flex: 1; padding: 8px 20px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; background: rgba(255, 255, 255, 0.95); border: none; color: #000; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-check me-1"></i>OK
+                </button>
+                <a href="{{ url_for('add_dotation') }}" class="btn btn-warning"
+                    style="flex: 1; padding: 8px 20px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; background: #ffc107; border: none; color: #000; box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4); text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; text-align: center;">
+                    <i class="fas fa-plus me-1"></i>Nouvelle
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de succès de suppression -->
+<div class="modal fade" id="deleteSuccessModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); border-radius: 12px; box-shadow: 0 10px 40px rgba(220, 53, 69, 0.4); border: none; overflow: hidden;">
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                <h5
+                    style="color: #fff; font-size: 0.95rem; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-trash-alt" style="margin-right: 8px;"></i>Dotation Supprimée
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" />
+            </div>
+            <div style="padding: 20px 25px 15px 25px; color: #fff;">
+                <div
+                    style="text-align: center; margin-bottom: 12px; font-size: 0.95rem; line-height: 1.5; font-weight: 500;">
+                    <div style="font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; letter-spacing: 0.5px;"
+                        id="deleteSuccessNumero">
+                        DOT-2025-001
+                    </div>
+                    <div style="font-size: 0.9rem; opacity: 0.95; line-height: 1.6;" id="deleteSuccessDetails">
+                        Dotation supprimée avec succès
+                    </div>
+                </div>
+                <div
+                    style="background: rgba(255, 255, 255, 0.15); padding: 10px 15px; border-radius: 6px; margin-top: 12px; text-align: center;">
+                    <i class="fas fa-box-open" style="margin-right: 6px; font-size: 0.9rem;"></i>
+                    <span style="font-size: 0.85rem; font-weight: 600;">Quantités remises en stock</span>
+                </div>
+            </div>
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; display: flex; justify-content: center; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"
+                    style="padding: 8px 30px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; background: rgba(255, 255, 255, 0.95); border: none; color: #000; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-check me-1"></i>OK
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmation de suppression TOTALE -->
+<div class="modal fade" id="deleteAllModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="background: linear-gradient(135deg, #dc3545 0%, #991b1b 100%); border-radius: 15px; box-shadow: 0 15px 50px rgba(220, 53, 69, 0.5); border: 2px solid rgba(255, 255, 255, 0.1); overflow: hidden;">
+            <div
+                style="background: rgba(0, 0, 0, 0.2); padding: 15px 25px; border-bottom: 2px solid rgba(255, 255, 255, 0.2);">
+                <h5
+                    style="color: #fff; font-size: 1.1rem; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 1px;">
+                    <i class="fas fa-exclamation-triangle"
+                        style="margin-right: 10px; animation: shake 0.5s infinite;"></i>DANGER - Suppression Totale
+                </h5>
+            </div>
+            <div style="padding: 25px 30px; color: #fff;">
+                <div
+                    style="background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #fbbf24;">
+                    <p style="margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.6;">
+                        <i class="fas fa-exclamation-circle me-2" style="color: #fbbf24;"></i>
+                        Vous êtes sur le point de supprimer <strong>TOUTES LES DOTATIONS</strong> !
+                    </p>
+                </div>
+
+                <div style="background: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <p style="margin: 0 0 10px 0; font-size: 0.95rem; font-weight: 600;">
+                        <i class="fas fa-info-circle me-2"></i>Conséquences :
+                    </p>
+                    <ul style="margin: 0; padding-left: 25px; font-size: 0.9rem; line-height: 1.8;">
+                        <li>Toutes les dotations seront supprimées</li>
+                        <li>Les quantités seront remises en stock</li>
+                        <li><strong>Cette action est IRRÉVERSIBLE</strong></li>
+                    </ul>
+                </div>
+
+                <div
+                    style="background: rgba(255, 255, 255, 0.15); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: 600; font-size: 0.95rem;">
+                        <i class="fas fa-keyboard me-2"></i>Pour confirmer, tapez : <code
+                            style="background: rgba(0, 0, 0, 0.3); padding: 3px 8px; border-radius: 4px; color: #fbbf24; font-weight: 700;">SUPPRIMER TOUT</code>
+                    </label>
+                    <input type="text" id="deleteAllConfirmInput" class="form-control"
+                        placeholder="Tapez exactement : SUPPRIMER TOUT"
+                        style="background: rgba(255, 255, 255, 0.9); border: 2px solid rgba(255, 255, 255, 0.3); font-weight: 600; text-transform: uppercase;">
+                    <small id="deleteAllError"
+                        style="color: #fbbf24; display: none; margin-top: 5px; font-weight: 600;">
+                        <i class="fas fa-times-circle me-1"></i>Texte incorrect !
+                    </small>
+                </div>
+            </div>
+            <div
+                style="background: rgba(0, 0, 0, 0.2); padding: 15px 25px; display: flex; justify-content: space-between; gap: 10px; border-top: 2px solid rgba(255, 255, 255, 0.2);">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"
+                    style="flex: 1; padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-times me-1"></i>Annuler
+                </button>
+                <button type="button" class="btn btn-danger" onclick="executeDeleteAll()"
+                    style="flex: 1; padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; background: #991b1b; border: none; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);">
+                    <i class="fas fa-trash-alt me-1"></i>Supprimer Tout
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes shake {
+
+        0%,
+        100% {
+            transform: rotate(0deg);
+        }
+
+        25% {
+            transform: rotate(-10deg);
+        }
+
+        75% {
+            transform: rotate(10deg);
+        }
+    }
+
+    /* Animation pour les modaux */
+    #deleteModal .modal-content,
+    #successModal .modal-content,
+    #deleteSuccessModal .modal-content,
+    #deleteAllModal .modal-content {
+        animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-50px) scale(0.9);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /* Effet hover sur les boutons */
+    #deleteModal .btn-warning:hover,
+    #successModal .btn-warning:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(255, 193, 7, 0.5);
+    }
+
+    #deleteModal .btn-light:hover,
+    #successModal .btn-light:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Animation des icônes */
+    #deleteModal .fa-exclamation-triangle,
+    #successModal .fa-check-circle {
+        animation: iconPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes iconPulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.1);
+        }
+    }
+</style>
+
+<script>
+    // =============================================
+    // JAVASCRIPT GLOBAL - PAGE DOTATIONS
+    // =============================================
+
+    // Fonction pour afficher une notification non-bloquante
+    function showNotification(message, type, duration, pulse) {
+        type = type || 'success';
+        duration = duration || 5000;
+        pulse = pulse || false;
+
+        var notificationArea = document.getElementById('notification-area');
+        if (!notificationArea) {
+            console.warn('Zone de notification non trouvée');
+            return;
+        }
+
+        var alertClass = 'alert alert-' + (type === 'success' ? 'success' : type === 'error' ? 'danger' : type) + ' alert-dismissible fade show';
+        var icon = 'fa-info-circle';
+        if (type === 'success') icon = 'fa-check-circle';
+        else if (type === 'error') icon = 'fa-exclamation-circle';
+        else if (type === 'warning') icon = 'fa-exclamation-triangle';
+
+        var notification = document.createElement('div');
+        notification.className = alertClass;
+        notification.style.cssText =
+            'position: relative;' +
+            'margin-bottom: 10px;' +
+            'border: none;' +
+            'border-radius: 8px;' +
+            'box-shadow: 0 4px 12px rgba(0,0,0,0.15);' +
+            'z-index: 9999;' +
+            'animation: slideInRight 0.3s ease-out;';
+
+        notification.innerHTML =
+            '<div class="d-flex align-items-center">' +
+            '<i class="fas ' + icon + '"></i>' +
+            '<div class="flex-grow-1">' +
+            '<strong style="font-weight: 600;">' + message + '</strong>' +
+            '</div>' +
+            '<button type="button" class="btn-close ms-2" data-bs-dismiss="alert" style="background: rgba(0,0,0,0.1); border-radius: 50%; width: 24px; height: 24px;" />' +
+            '</div>';
+
+        // Ajouter au début de la zone de notification
+        notificationArea.insertBefore(notification, notificationArea.firstChild);
+
+        // Animation de pulse si demandée
+        if (pulse) {
+            notification.style.animation += ', pulse 1s infinite';
+        }
+
+        // Auto-suppression après la durée spécifiée
+        if (duration > 0) {
+            setTimeout(function () {
+                if (notification.parentNode) {
+                    notification.style.animation = 'slideOutRight 0.3s ease-in';
+                    setTimeout(function () {
+                        if (notification.parentNode) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }
+            }, duration);
+        }
+    }
+
+    // =============================================
+    // INITIALISATION AU CHARGEMENT DE LA PAGE
+    // =============================================
+    document.addEventListener('DOMContentLoaded', function () {
+        // Nettoyage initial pour s'assurer qu'aucun modal ne bloque la page
+        var backdrops = document.querySelectorAll('.modal-backdrop');
+        var i;
+        for (i = 0; i < backdrops.length; i++) {
+            backdrops[i].remove();
+        }
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+
+        // Attendre un court délai pour s'assurer que la page est complètement chargée
+        setTimeout(function () {
+            // Afficher les messages flash comme notifications non-bloquantes
+            var flashMessages = document.querySelectorAll('.alert');
+            var j;
+            for (j = 0; j < flashMessages.length; j++) {
+                var alert = flashMessages[j];
+                if (alert.id !== 'notification-area' && !alert.closest('#notification-area')) {
+                    var message = alert.textContent.trim().replace(/\s+/g, ' ');
+                    var type = 'info';
+
+                    if (alert.classList.contains('alert-success')) type = 'success';
+                    else if (alert.classList.contains('alert-danger')) type = 'error';
+                    else if (alert.classList.contains('alert-warning')) type = 'warning';
+
+                    // Masquer l'alerte originale
+                    alert.style.display = 'none';
+
+                    // Afficher comme notification non-bloquante
+                    var duration = type === 'success' ? 8000 : type === 'error' ? 10000 : 6000;
+                    showNotification(message, type, duration, true); // Avec pulsation
+                }
+            }
+        }, 100); // Délai de 100ms pour s'assurer que tout est chargé
+
+        // Soumission automatique du filtre d'année des dotations
+        var dotationYearFilter = document.getElementById('dotation_year_filter');
+        var yearFilterForm = document.getElementById('yearFilterForm');
+        if (dotationYearFilter && yearFilterForm) {
+            dotationYearFilter.addEventListener('change', function () {
+                yearFilterForm.submit();
+            });
+        }
+
+        // Test de notification au chargement de la page (pour debug)
+        // showNotification('Page des dotations chargée avec succès', 'info', 3000);
+
+        // Bouton de test pour le modal (temporaire)
+        console.log('Nombre de boutons de suppression trouvés:', document.querySelectorAll('.delete-btn').length);
+
+        // Fonction de test du modal
+        window.testModal = function () {
+            console.log('Test du modal...');
+            var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            document.getElementById('deleteNumero').textContent = 'DOT-2025-001';
+            deleteModal.show();
+        };
+
+        // Fonction de test des notifications
+        window.testNotifications = function () {
+            showNotification('Dotation supprimée avec succès!', 'success', 5000, true);
+            setTimeout(function () {
+                showNotification('Attention: Stock critique détecté', 'warning', 5000, true);
+            }, 1000);
+            setTimeout(function () {
+                showNotification('Erreur lors de la suppression', 'error', 5000, true);
+            }, 2000);
+            setTimeout(function () {
+                showNotification('Information générale', 'info', 5000, true);
+            }, 3000);
+        };
+
+        // Fonction de nettoyage d'urgence pour réactiver la page
+        window.cleanupModal = function () {
+            console.log('Nettoyage d\'urgence du modal...');
+
+            // Fermer tous les modals
+            var modals = document.querySelectorAll('.modal');
+            var k;
+            for (k = 0; k < modals.length; k++) {
+                var modal = modals[k];
+                modal.classList.remove('show');
+                modal.style.display = 'none';
+                var instance = bootstrap.Modal.getInstance(modal);
+                if (instance) {
+                    instance.hide();
+                }
+            }
+
+            // Supprimer tous les backdrops
+            var backdrops = document.querySelectorAll('.modal-backdrop');
+            var l;
+            for (l = 0; l < backdrops.length; l++) {
+                backdrops[l].remove();
+            }
+
+            // Réactiver le body
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+
+            // Réactiver tous les éléments
+            var disabledElements = document.querySelectorAll('[disabled]');
+            var m;
+            for (m = 0; m < disabledElements.length; m++) {
+                var element = disabledElements[m];
+                if (!element.hasAttribute('data-originally-disabled')) {
+                    element.disabled = false;
+                    element.style.pointerEvents = '';
+                }
+            }
+
+            console.log('Nettoyage terminé - page réactivée');
+        };
+
+        // Raccourci clavier d'urgence : Échap pour nettoyage
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                // Double échap pour nettoyage d'urgence
+                if (e.ctrlKey) {
+                    cleanupModal();
+                    showNotification('Page réactivée avec succès', 'success', 3000);
+                }
+            }
+        });
+
+        // Vous pouvez taper testModal() ou cleanupModal() dans la console pour tester
+
+        // Gérer les clics sur les boutons de suppression
+        var deleteButtons = document.querySelectorAll('.delete-btn');
+        var n;
+        for (n = 0; n < deleteButtons.length; n++) {
+            var button = deleteButtons[n];
+            console.log('Bouton ' + (n + 1) + ' trouvé:', button.dataset.dotationId, button.dataset.dotationNumero);
+
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                var dotationId = this.dataset.dotationId;
+                var dotationNumero = this.dataset.dotationNumero;
+
+                console.log('Clic sur suppression:', dotationId, dotationNumero);
+
+                // Mettre à jour le contenu du modal
+                var numeroElement = document.getElementById('deleteNumero');
+                if (numeroElement) {
+                    numeroElement.textContent = dotationNumero || 'N/A';
+                    console.log('Numéro de dotation affiché:', dotationNumero);
+                }
+
+                var formElement = document.getElementById('deleteForm');
+                if (formElement) {
+                    formElement.action = '/dotations/delete/' + dotationId;
+                    console.log('Action du formulaire:', formElement.action);
+                }
+
+                // Configurer le formulaire
+                var deleteForm = document.getElementById('deleteForm');
+                deleteForm.onsubmit = function (e) {
+                    console.log('Soumission du formulaire pour:', dotationNumero);
+
+                    // Fermer le modal complètement
+                    var modalElement = document.getElementById('deleteModal');
+                    var modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) {
+                        modal.hide();
+                    }
+
+                    // Forcer la fermeture et nettoyer
+                    setTimeout(function () {
+                        modalElement.classList.remove('show');
+                        modalElement.style.display = 'none';
+                        document.body.classList.remove('modal-open');
+
+                        // Supprimer le backdrop s'il existe
+                        var backdrop = document.querySelector('.modal-backdrop');
+                        if (backdrop) {
+                            backdrop.remove();
+                        }
+
+                        // Réactiver le scroll
+                        document.body.style.overflow = '';
+                        document.body.style.paddingRight = '';
+                    }, 100);
+
+                    // Animation de la ligne seulement
+                    var row = document.querySelector('button[data-dotation-id="' + dotationId + '"]').closest('tr');
+                    if (row) {
+                        row.style.transition = 'all 0.3s ease';
+                        row.style.opacity = '0.6';
+                        row.style.transform = 'scale(0.98)';
+                    }
+
+                    return true; // Laisser le formulaire se soumettre
+                };
+
+                // Afficher le modal
+                try {
+                    var modalElement = document.getElementById('deleteModal');
+                    var modal = new bootstrap.Modal(modalElement, {
+                        backdrop: true,
+                        keyboard: true
+                    });
+
+                    // Gérer la fermeture du modal
+                    modalElement.addEventListener('hidden.bs.modal', function () {
+                        console.log('Modal fermé');
+                        // S'assurer que tout est nettoyé
+                        document.body.classList.remove('modal-open');
+                        document.body.style.overflow = '';
+                        document.body.style.paddingRight = '';
+
+                        var backdrop = document.querySelector('.modal-backdrop');
+                        if (backdrop) {
+                            backdrop.remove();
+                        }
+                    });
+
+                    modal.show();
+                    console.log('Modal ouvert pour:', dotationNumero);
+                } catch (error) {
+                    console.error('Erreur lors de l\'ouverture du modal:', error);
+                    // Fallback: confirmation simple
+                    if (confirm('Êtes-vous sûr de vouloir supprimer la dotation ' + dotationNumero + ' ?')) {
+                        window.location.href = '/dotations/delete/' + dotationId;
+                    }
+                }
+            });
+        }
+    });
+
+    function showArticles(dotationId) {
+        // Charger les articles de la dotation via AJAX
+        fetch('/api/dotation/' + dotationId + '/articles')
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                var html = '<div class="table-responsive"><table class="table table-sm">';
+                html += '<thead><tr><th>Article</th><th>SKU</th><th>Quantité Dotée</th></tr></thead><tbody>';
+
+                var i;
+                for (i = 0; i < data.articles.length; i++) {
+                    var article = data.articles[i];
+                    html += '<tr>' +
+                        '<td>' + article.designation + '</td>' +
+                        '<td>' + article.sku + '</td>' +
+                        '<td>' + article.quantite_dotee + '</td>' +
+                        '</tr>';
+                }
+
+                html += '</tbody></table></div>';
+
+                // Afficher dans le modal
+                document.getElementById('articlesContent').innerHTML = html;
+                new bootstrap.Modal(document.getElementById('articlesModal')).show();
+            })
+            .catch(function (error) {
+                console.error('Erreur:', error);
+                showNotification('Erreur lors du chargement des articles', 'error');
+            });
+    }
+
+    function showDeleteAllModal() {
+        new bootstrap.Modal(document.getElementById('deleteAllModal')).show();
+    }
+
+    function executeDeleteAll() {
+        var confirmInput = document.getElementById('deleteAllConfirmInput');
+        var errorSpan = document.getElementById('deleteAllError');
+
+        if (confirmInput.value.trim() !== 'SUPPRIMER TOUT') {
+            errorSpan.style.display = 'block';
+            return;
+        }
+
+        errorSpan.style.display = 'none';
+        window.location.href = '/dotations/delete-all';
+    }
+
+    function showDeleteModal(dotationId, dotationNumero) {
+        document.getElementById('deleteNumero').textContent = dotationNumero;
+        document.getElementById('deleteForm').action = '/dotations/delete/' + dotationId;
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    }
+
+    function showSuccessModal(dotationNumero, details) {
+        document.getElementById('successNumero').textContent = dotationNumero;
+        document.getElementById('successDetails').textContent = details;
+        new bootstrap.Modal(document.getElementById('successModal')).show();
+    }
+
+    function showDeleteSuccessModal(dotationNumero, details) {
+        document.getElementById('deleteSuccessNumero').textContent = dotationNumero;
+        document.getElementById('deleteSuccessDetails').textContent = details;
+        new bootstrap.Modal(document.getElementById('deleteSuccessModal')).show();
+    }
+
+    function viewDotation(dotationId) {
+        window.location.href = '/dotations/' + dotationId;
+    }
+
+    function editDotation(dotationId) {
+        window.location.href = '/dotations/edit/' + dotationId;
+    }
+
+    // S'assurer qu'aucun modal d'import résiduel n'existe au chargement
+    document.addEventListener('DOMContentLoaded', function () {
+        // Supprimer tout modal d'import résiduel qui pourrait exister
+        var existingModal = document.getElementById('importDechargeModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Supprimer tout backdrop résiduel
+        var backdrops = document.querySelectorAll('.modal-backdrop');
+        var i;
+        for (i = 0; i < backdrops.length; i++) {
+            backdrops[i].remove();
+        }
+    });
+
+    // Fonction pour afficher le modal d'import de décharge
+    function showImportDechargeModal(dotationId, dotationNumero) {
+        // Supprimer tout modal existant
+        var existingModal = document.getElementById('importDechargeModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Créer le modal HTML de manière simple
+        var modalHTML = '<div class="modal fade" id="importDechargeModal" tabindex="-1" aria-hidden="true">' +
+            '<div class="modal-dialog modal-dialog-centered">' +
+            '<div class="modal-content" style="border-radius: 12px; box-shadow: 0 10px 40px rgba(245, 158, 11, 0.3); border: none; overflow: hidden;">' +
+            '<div class="modal-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border: none; padding: 15px 20px;">' +
+            '<h5 class="modal-title" style="color: #fff; font-weight: 700; margin: 0;">' +
+            '<i class="fas fa-file-signature me-2"></i>Importer la Décharge Signée' +
+            '</h5>' +
+            '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" />' +
+            '</div>' +
+            '<div class="modal-body" style="padding: 25px;">' +
+            '<div class="mb-3">' +
+            '<div class="alert alert-info" style="border-radius: 8px; border-left: 4px solid #0dcaf0;">' +
+            '<i class="fas fa-info-circle me-2"></i>' +
+            '<strong>Dotation N°:</strong> <span id="dotationNumeroImport">' + dotationNumero + '</span>' +
+            '<br />' +
+            '<small>Sélectionnez le fichier PDF de la décharge signée.</small>' +
+            '</div>' +
+            '</div>' +
+
+            '<form autocomplete="off" id="importDechargeForm" enctype="multipart/form-data">' +
+            '<input type="hidden" id="dotationIdImport" name="dotation_id" value="' + dotationId + '" />' +
+
+            '<div class="mb-4">' +
+            '<label for="decharge_pdf" class="form-label" style="font-weight: 600; color: #374151;">' +
+            '<i class="fas fa-file-pdf me-2" style="color: #dc3545;"></i>' +
+            'Fichier PDF Signé <span class="text-danger">*</span>' +
+            '</label>' +
+            '<input type="file" class="form-control" id="decharge_pdf" name="decharge_pdf" accept=".pdf" required />' +
+            '<div class="form-text">' +
+            '<i class="fas fa-info-circle me-1"></i>' +
+            'Veuillez sélectionner un fichier PDF valide (max 10MB)' +
+            '</div>' +
+            '<div id="fileInfo" class="mt-2" style="display: none;">' +
+            '<div class="alert alert-info" style="font-size: 0.85rem; padding: 8px 12px;">' +
+            '<i class="fas fa-file-pdf me-2"></i>' +
+            '<span id="fileName"></span> - <span id="fileSize"></span>' +
+            '</div>' +
+            '</div>' +
+            '<div id="fileError" class="mt-2" style="display: none;">' +
+            '<div class="alert alert-danger" style="font-size: 0.85rem; padding: 8px 12px;">' +
+            '<i class="fas fa-exclamation-triangle me-2"></i>' +
+            '<span id="errorMessage"></span>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+
+            '<div class="d-flex justify-content-end gap-2">' +
+            '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">' +
+            '<i class="fas fa-times me-2"></i>Annuler' +
+            '</button>' +
+            '<button type="submit" class="btn btn-primary" style="background: #f59e0b; border-color: #f59e0b;">' +
+            '<i class="fas fa-upload me-2"></i>Importer' +
+            '</button>' +
+            '</div>' +
+            '</form>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '</div>';
+
+        // Ajouter au corps du document
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        // Afficher le modal
+        var modalElement = document.getElementById('importDechargeModal');
+        var modal = new bootstrap.Modal(modalElement);
+
+        // Nettoyer le modal quand il est fermé
+        modalElement.addEventListener('hidden.bs.modal', function () {
+            modalElement.remove();
+        });
+
+        // Gérer la soumission du formulaire
+        document.getElementById('importDechargeForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            var formData = new FormData(this);
+            var fileInput = document.getElementById('decharge_pdf');
+            var file = fileInput.files[0];
+
+            // Validation
+            if (!file) {
+                showNotification('Veuillez sélectionner un fichier PDF.', 'error');
+                fileInput.focus();
+                return;
+            }
+
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                showNotification('Le fichier doit être au format PDF.', 'error');
+                fileInput.focus();
+                return;
+            }
+
+            var maxSize = 10 * 1024 * 1024; // 10MB
+            if (file.size > maxSize) {
+                showNotification('Le fichier ne doit pas dépasser 10MB.', 'error');
+                fileInput.focus();
+                return;
+            }
+
+            // Indicateur de chargement
+            var submitBtn = this.querySelector('button[type="submit"]');
+            var originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Importation...';
+            submitBtn.disabled = true;
+
+            // Debug simple
+            console.log('Importation du fichier: ' + file.name + ' (' + file.size + ' bytes)');
+
+            // Requête fetch
+            var url = '/dotations/' + dotationId + '/import-decharge';
+            fetch(url, {
+                method: 'POST',
+                body: formData
+            })
+                .then(function (response) {
+                    console.log('Response status: ' + response.status);
+                    return response.json().then(function (data) {
+                        if (!response.ok) {
+                            var errorMsg = data.message || 'Erreur HTTP ' + response.status;
+                            throw new Error(errorMsg);
+                        }
+                        return data;
+                    });
+                })
+                .then(function (data) {
+                    console.log('Response data:', data);
+                    if (data.success) {
+                        // Fermer le modal
+                        bootstrap.Modal.getInstance(modalElement).hide();
+
+                        // Notification de succès
+                        var successMsg = data.message || 'PDF importé avec succès';
+                        showNotification(successMsg, 'success');
+
+                        // Recharger la page
+                        setTimeout(function () {
+                            window.location.reload();
+                        }, 2000);
+                    } else {
+                        // Notification d'erreur
+                        var errorMsg = data.message || 'Erreur lors de l\'import du fichier.';
+                        showNotification(errorMsg, 'error');
+                        console.error('Erreur serveur:', data);
+                    }
+                })
+                .catch(function (error) {
+                    console.error('Erreur complète:', error);
+                    var errorMessage = 'Une erreur est survenue lors de l\'import du fichier.';
+
+                    // Messages d'erreur spécifiques
+                    if (error.message && error.message.indexOf('dotations livrées') !== -1) {
+                        errorMessage = 'Le PDF signé ne peut être importé que pour les dotations livrées.';
+                    } else if (error.message && error.message.indexOf('format PDF') !== -1) {
+                        errorMessage = 'Le fichier doit être au format PDF.';
+                    } else if (error.message && error.message.indexOf('Aucun fichier') !== -1) {
+                        errorMessage = 'Aucun fichier n\'a été sélectionné.';
+                    } else if (error.message && error.message.indexOf('taille') !== -1) {
+                        errorMessage = 'Le fichier est trop volumineux (max 10MB).';
+                    } else if (error.message) {
+                        errorMessage = error.message;
+                    }
+
+                    showNotification(errorMessage, 'error');
+                })
+                .finally(function () {
+                    // Restaurer le bouton
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                });
+        });
+
+        // Validation en temps réel
+        var fileInput = document.getElementById('decharge_pdf');
+        fileInput.addEventListener('change', function () {
+            var file = this.files[0];
+            var fileInfo = document.getElementById('fileInfo');
+            var fileError = document.getElementById('fileError');
+            var fileName = document.getElementById('fileName');
+            var fileSize = document.getElementById('fileSize');
+            var errorMessage = document.getElementById('errorMessage');
+
+            if (!file) {
+                fileInfo.style.display = 'none';
+                fileError.style.display = 'none';
+                return;
+            }
+
+            // Vérifier l'extension
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                fileInfo.style.display = 'none';
+                fileError.style.display = 'block';
+                errorMessage.textContent = 'Le fichier doit être au format PDF.';
+                return;
+            }
+
+            // Vérifier la taille
+            var maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                fileInfo.style.display = 'none';
+                fileError.style.display = 'block';
+                errorMessage.textContent = 'Le fichier ne doit pas dépasser 10MB.';
+                return;
+            }
+
+            // Afficher les informations du fichier
+            fileInfo.style.display = 'block';
+            fileError.style.display = 'none';
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+        });
+
+        modal.show();
+    }
+
+    // Fonction pour formater la taille du fichier
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        var k = 1024;
+        var sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        var i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+</script>
+
+{% endblock %}

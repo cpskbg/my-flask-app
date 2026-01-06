@@ -1,0 +1,136 @@
+==================================================
+STRUCTURE DÉTAILLÉE DU PROJET - APPLICATION GESTION DE STOCK
+==================================================
+
+Auteur: Système de Gestion Stock
+Date: 01/01/2026
+Version: 1.2
+
+==================================================
+1. ARCHITECTURE GÉNÉRALE
+==================================================
+
+Le projet est une application web de gestion de stock et budgétaire développée avec:
+- Framework: Flask (Python)
+- Base de données: SQLite avec SQLAlchemy ORM
+- Interface: Vanilla CSS avec design Premium (Inter Font, Glassmorphism elements)
+- Composants UI: SweetAlert2 (dialogues), Font Awesome 6 (icônes)
+- Authentification: Sessions Flask avec rôles (Admin, Super Admin, Gestionnaire, Utilisateur)
+
+==================================================
+2. FICHIERS ESSENTIELS
+==================================================
+
+2.1 Fichiers Python (.py)
+-------------------------
+- app.py (7200+ lignes)
+  * Point d'entrée principal
+  * Système de migration automatique (ensure_soft_delete_columns)
+  * Gestion centralisée du Soft Delete
+  * Routes CRUD et Administration
+  * Logs d'audit et exports (Excel/PDF)
+
+- models.py (Optionnel, intégré dans app.py)
+  * Modèles SQLAlchemy
+  * Relations complexes avec clés étrangères explicites
+
+2.2 Templates HTML (dossier templates/)
+------------------------------------
+- base.html: Layout global avec sidebar dynamique
+- admin_trash.html: NOUVEAU - Gestion centralisée de la corbeille
+- admin_users.html: Gestion avancée des utilisateurs
+- dashboard.html: Analytics et statistiques stock
+- Et plus de 30 templates spécialisés...
+
+2.3 Fichiers statiques (dossier static/)
+-----------------------------------
+- css/main-unified.css: Styles globaux
+- uploads/: Dossier sécurisé pour justificatifs et décharges signées
+
+==================================================
+3. SYSTEME DE SOFT DELETE (Corbeille)
+==================================================
+
+3.1 Mécanisme
+-------------
+Les entités ne sont plus supprimées physiquement par défaut. Elles sont marquées via:
+- is_deleted (Boolean): Statut de visibilité
+- deleted_at (DateTime): Date de mise en corbeille
+- deleted_by (Integer): ID de l'utilisateur ayant supprimé
+
+3.2 Tables supportées
+---------------------
+- users
+- items
+- dotations
+- receptions
+- avis_achats
+
+3.3 Actions possibles
+---------------------
+- Restaurer: L'élément redevient actif et visible dans les listes.
+- Supprimer définitivement: Nettoyage physique de la BDD (Audit log: ⚠️ SUPPRESSION DÉFINITIVE).
+
+==================================================
+4. FONCTIONNALITÉS D'ADMINISTRATION
+==================================================
+
+4.1 Gestion des Utilisateurs
+-----------------------------
+- Création/Modification avec rôles spécifiques
+- Activation/Désactivation de compte
+- Toggle Super Admin (réservé aux Super Admins)
+- Audit log de toutes les actions administratives
+
+4.2 Corbeille & Restaurations
+-----------------------------
+- Interface centralisée avec onglets colorés
+- Compteurs en temps réel par type d'entité
+- Badges visuels pour les rôles et catégories
+- Confirmation sécurisée par SweetAlert2
+
+4.3 Migration Automatique
+-------------------------
+- Fonction ensure_soft_delete_columns() : Vérifie et ajoute les colonnes nécessaires au démarrage de l'app si elles manquent dans SQLite.
+
+==================================================
+5. WORKFLOWS TECHNIQUES
+==================================================
+
+5.1 Suppression d'un article
+1. Utilisateur clique sur "Supprimer"
+2. is_deleted passe à 1
+3. L'article disparaît des vues standards
+4. L'article apparaît dans la Corbeille
+
+5.2 Restauration
+1. Admin va dans Administration > Corbeille
+2. Clique sur "Restaurer"
+3. is_deleted repasse à 0
+4. Les stocks sont recalculés si nécessaire (cas des réceptions/dotations)
+
+==================================================
+6. SÉCURITÉ ET AUDITS
+==================================================
+
+6.1 Rôles et Permissions
+- SUPER ADMIN: Accès total, suppression définitive utilisateurs.
+- ADMIN: Gestion corbeille (sauf sup. déf. users), gestion stock.
+- GESTIONNAIRE: Opérations courantes, consultation.
+
+6.2 Logs d'Audit
+- Tracabilité complète par ID utilisateur
+- Format: Action | Type Entité | ID Entité | Description | Date
+- Section dédiée dans le dashboard pour les 10 dernières actions.
+
+==================================================
+7. MAINTENANCE
+==================================================
+
+7.1 Sauvegardes
+- Crucial: stock_management.db
+- Dossier uploads/ pour les documents PDF générés/signés.
+
+==================================================
+FIN DE LA DOCUMENTATION
+==================================================

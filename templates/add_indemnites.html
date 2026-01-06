@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Nouvelles Indemnités de Déplacement - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block content %}
+
+<!-- Header de page -->
+<div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded-3" style="background: linear-gradient(135deg, rgba(255, 235, 59, 0.15) 0%, rgba(0, 188, 212, 0.15) 100%); border: 1px solid rgba(255, 235, 59, 0.3); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: linear-gradient(135deg, #FFEB3B 0%, #00BCD4 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(255, 235, 59, 0.4);">
+            <i class="fas fa-car" style="color: #fff; font-size: 1.4rem;"></i>
+        </div>
+        <h4 class="mb-0" style="font-weight: 700; color: #000; letter-spacing: 0.5px; font-size: 1.4rem; text-shadow: 0 2px 4px rgba(255, 255, 255, 0.5);">Nouvelles Indemnités de Déplacement</h4>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('engagements', type='indemnites') }}" class="btn btn-secondary d-flex align-items-center gap-2" style="padding: 8px 16px; font-size: 0.9rem; font-weight: 600; border-radius: 8px;">
+            <i class="fas fa-arrow-left" style="font-size: 0.95rem;"></i>
+            <span>Retour</span>
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form autocomplete="off" method="POST" action="{{ url_for('add_indemnites') }}" id="indemniteForm">
+            <!-- Informations de base -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="objet" class="form-label">Objet <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="objet" name="objet" rows="2" required></textarea>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="periode_deplacement" class="form-label">Période de Déplacement <span class="text-danger">*</span></label>
+                    <select class="form-select" id="periode_deplacement" name="periode_deplacement" required>
+                        <option value="">-- Sélectionner --</option>
+                        <option value="1er Trimestre">1<sup>er</sup> Trimestre</option>
+                        <option value="2ème Trimestre">2<sup>ème</sup> Trimestre</option>
+                        <option value="3ème Trimestre">3<sup>ème</sup> Trimestre</option>
+                        <option value="4ème Trimestre">4<sup>ème</sup> Trimestre</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="loi_finance" class="form-label">Loi de Finance <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="loi_finance" name="loi_finance" value="LF-{{ now().year }}" required>
+                    <small class="form-text text-muted">Format: LF-ANNÉE (ex: LF-2025)</small>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="type_engagement" class="form-label">Type d'Engagement <span class="text-danger">*</span></label>
+                    <select class="form-select" id="type_engagement" name="type_engagement" required onchange="handleTypeChange()">
+                        <option value="">-- Sélectionner --</option>
+                        <option value="Fiche de navette">Fiche de navette</option>
+                        <option value="Engagement global">Engagement global</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="numero_engagement" class="form-label" id="numeroLabel">N° <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="numero_engagement" name="numero_engagement" required>
+                    <small class="form-text text-muted" id="numeroHint"></small>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="montant_engage" class="form-label">Montant Engagé (DH) <span class="text-danger">*</span></label>
+                    <input type="number" step="0.01" class="form-control" id="montant_engage" name="montant_engage" required readonly>
+                    <small class="form-text text-muted">Calculé automatiquement à partir des bénéficiaires</small>
+                </div>
+            </div>
+
+            <!-- Tableau des bénéficiaires -->
+            <hr>
+            <h6 class="mb-3"><i class="fas fa-users me-2"></i>Bénéficiaires</h6>
+            
+            <div class="table-responsive mb-3">
+                <table class="table table-bordered" id="beneficiairesTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 25%;">Nom <span class="text-danger">*</span></th>
+                            <th style="width: 25%;">Prénom <span class="text-danger">*</span></th>
+                            <th style="width: 25%;">Grade <span class="text-danger">*</span></th>
+                            <th style="width: 20%;">Montant (DH) <span class="text-danger">*</span></th>
+                            <th style="width: 5%;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="beneficiairesBody">
+                        <!-- Les lignes seront ajoutées dynamiquement -->
+                    </tbody>
+                </table>
+            </div>
+
+            <button type="button" class="btn btn-success btn-sm mb-3" onclick="addBeneficiaire()">
+                <i class="fas fa-plus me-2"></i>Ajouter un bénéficiaire
+            </button>
+
+            <!-- Boutons -->
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{{ url_for('engagements', type='indemnites') }}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>Annuler
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let beneficiaireCount = 0;
+
+// Gestion du type d'engagement
+function handleTypeChange() {
+    const type = document.getElementById('type_engagement').value;
+    const label = document.getElementById('numeroLabel');
+    const hint = document.getElementById('numeroHint');
+    
+    if (type === 'Fiche de navette') {
+        label.innerHTML = 'N° Fiche <span class="text-danger">*</span>';
+        hint.textContent = 'Numéro de la fiche de navette';
+    } else if (type === 'Engagement global') {
+        label.innerHTML = 'N° Engagement <span class="text-danger">*</span>';
+        hint.textContent = 'Numéro de l\'engagement global';
+    } else {
+        label.innerHTML = 'N° <span class="text-danger">*</span>';
+        hint.textContent = '';
+    }
+}
+
+// Ajouter un bénéficiaire
+function addBeneficiaire() {
+    const tbody = document.getElementById('beneficiairesBody');
+    const row = document.createElement('tr');
+    row.id = `benefRow${beneficiaireCount}`;
+    
+    row.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm" id="nom${beneficiaireCount}" required></td>
+        <td><input type="text" class="form-control form-control-sm" id="prenom${beneficiaireCount}" required></td>
+        <td><input type="text" class="form-control form-control-sm" id="grade${beneficiaireCount}" required></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm montant-input" id="montant${beneficiaireCount}" required onchange="calculateTotal()"></td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeBeneficiaire(${beneficiaireCount})">
+                <i class="fas fa-trash"></i>
+            </button>
+        </td>
+    `;
+    
+    tbody.appendChild(row);
+    beneficiaireCount++;
+}
+
+// Supprimer un bénéficiaire
+function removeBeneficiaire(id) {
+    const row = document.getElementById(`benefRow${id}`);
+    row.remove();
+    calculateTotal();
+}
+
+// Calculer le montant total
+function calculateTotal() {
+    const montantInputs = document.querySelectorAll('.montant-input');
+    let total = 0;
+    
+    montantInputs.forEach(input => {
+        const value = parseFloat(input.value) || 0;
+        total += value;
+    });
+    
+    document.getElementById('montant_engage').value = total.toFixed(2);
+}
+
+// Soumettre le formulaire
+document.getElementById('indemniteForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Collecter les bénéficiaires
+    const beneficiaires = [];
+    const rows = document.querySelectorAll('#beneficiairesBody tr');
+    
+    if (rows.length === 0) {
+        alert('⚠️ Veuillez ajouter au moins un bénéficiaire');
+        return;
+    }
+    
+    rows.forEach((row, index) => {
+        const nom = document.getElementById(`nom${index}`);
+        const prenom = document.getElementById(`prenom${index}`);
+        const grade = document.getElementById(`grade${index}`);
+        const montant = document.getElementById(`montant${index}`);
+        
+        if (nom && prenom && grade && montant) {
+            beneficiaires.push({
+                nom: nom.value,
+                prenom: prenom.value,
+                grade: grade.value,
+                montant: montant.value
+            });
+        }
+    });
+    
+    // Ajouter les bénéficiaires au formulaire
+    beneficiaires.forEach(ben => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'beneficiaires[]';
+        input.value = JSON.stringify(ben);
+        this.appendChild(input);
+    });
+    
+    // Soumettre
+    this.submit();
+});
+
+// Ajouter un bénéficiaire par défaut au chargement
+window.addEventListener('load', function() {
+    addBeneficiaire();
+});
+</script>
+
+<style>
+sup {
+    font-size: 0.7em;
+    vertical-align: super;
+}
+</style>
+
+{% endblock %}

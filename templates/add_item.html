@@ -1,0 +1,592 @@
+{% extends "base.html" %}
+
+{% block title %}Ajouter Article - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block extra_head %}
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Chargement de la dernière version de Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Animation pour le container de sous-prestation */
+    #sous_prestation_container {
+        transition: all 0.3s ease-in-out;
+    }
+    
+    #sous_prestation_container.show {
+        animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Style pour les cases à cocher et boutons radio */
+    .form-check-input:checked {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+    
+    .form-check-label {
+        cursor: pointer;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+    
+    .form-check-label:hover {
+        background-color: rgba(40, 167, 69, 0.05);
+    }
+    
+    .form-check {
+        margin-bottom: 8px;
+    }
+    
+    .nature-icon {
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        color: white;
+        font-size: 12px;
+    }
+    
+    /* Style spécifique pour la catégorie Entretien */
+    .entretien-category {
+        background-color: #f8f9fa;
+        border-left: 4px solid #6c757d;
+        padding: 10px 15px;
+        margin: 10px 0;
+        border-radius: 0 6px 6px 0;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .sous-categorie {
+        padding-left: 30px;
+        margin-top: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="confirmDeleteModalLabel">
+                    <i class="fa-solid fa-exclamation-triangle me-2"></i>Confirmer la suppression
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fa-solid fa-trash fa-3x text-danger mb-3"></i>
+                    <h5>Êtes-vous sûr de vouloir supprimer cet élément ?</h5>
+                    <p class="text-muted">Cette action est irréversible et supprimera définitivement l'élément.</p>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fa-solid fa-times me-1"></i> Annuler
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="fa-solid fa-check me-1"></i> Confirmer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'erreur -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="errorModalLabel">
+                    <i class="fa-solid fa-exclamation-circle me-2"></i>Erreur
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fa-solid fa-exclamation-triangle fa-4x text-warning mb-3"></i>
+                    <h5 id="errorMessage">Une erreur est survenue</h5>
+                    <p class="text-muted" id="errorDetails"></p>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
+                    <i class="fa-solid fa-times me-1"></i> Fermer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de succès -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="successModalLabel">
+                    <i class="fa-solid fa-check-circle me-2"></i>Succès
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fa-solid fa-check-circle fa-4x text-success mb-3"></i>
+                    <h5 id="successMessage">Opération effectuée avec succès !</h5>
+                    <p class="text-muted" id="successDetails">Les modifications ont été enregistrées.</p>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">
+                    <i class="fa-solid fa-check me-1"></i> OK
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4" style="background: linear-gradient(135deg, #6f42c1 0%, #0dcaf0 100%); padding: 1.5rem; border-radius: 10px; box-shadow: 0 4px 15px rgba(111, 66, 193, 0.3);">
+    <h1 class="h2 text-white mb-0" style="font-weight: 700; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); letter-spacing: 0.5px;">
+        <i class="fa-solid fa-plus me-2" style="font-size: 1.8rem; vertical-align: middle;"></i>Ajouter Nouvel Article
+    </h1>
+    <a href="{{ url_for('items') }}" class="btn btn-light" style="font-weight: 600; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);">
+        <i class="fa-solid fa-arrow-left me-2"></i>Retour aux Articles
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form autocomplete="off" method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="sku" class="form-label"><i class="fa-solid fa-barcode me-2"></i>SKU <small class="text-muted">(généré automatiquement)</small></label>
+                            <input type="text" class="form-control" id="sku" name="sku" value="{{ next_sku }}" readonly style="background-color: #f8f9fa;">
+                            <div class="form-text">Le SKU sera automatiquement assigné lors de la sauvegarde</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label"><i class="fa-solid fa-tag me-2"></i>Désignation de l'article <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" required placeholder="Saisir le nom de l'article">
+                            <div id="duplicate-warning" class="form-text text-danger" style="display: none;">
+                                <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                                <strong>Attention :</strong> <span id="duplicate-message"></span>
+                            </div>
+                            <div id="name-available" class="form-text text-success" style="display: none;">
+                                <i class="fa-solid fa-circle-check me-2"></i>
+                                <strong>Nom disponible</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label"><i class="fa-solid fa-align-left me-2"></i>Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="2" placeholder="Saisir la description de l'article"></textarea>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold" style="font-size: 1.1rem;">
+                            <i class="fa-solid fa-tags me-2"></i>Nature de Prestation <span class="text-danger">*</span>
+                        </label>
+                        
+                        <div class="row">
+                            <!-- Catégories principales -->
+                            <div class="col-md-6">
+                                {% set nature_icons = {
+                                    'Alimentation à usage Humaine': 'fa-solid fa-utensils text-warning',
+                                    'Entretien bâtiments administratifs': 'fa-solid fa-building text-warning',
+                                    'Fournitures de bureaux et documentation': 'fa-solid fa-folder-open text-primary',
+                                    'Fournitures pour le matériel informatique': 'fa-solid fa-computer text-primary',
+                                    'Fournitures pour materiel informatique': 'fa-solid fa-computer text-primary',
+                                    'Produits d\'hygiène et de désinfection': 'fa-solid fa-pump-medical text-success',
+                                    'Moyens de transport': 'fa-solid fa-truck text-danger',
+                                    'Équipement de protection individuelle': 'fa-solid fa-shield-halved text-warning',
+                                    'Entretien espaces verts': 'fa-solid fa-leaf text-success',
+                                    'Nettoyage et hygiène': 'fa-solid fa-broom text-info',
+                                    'Maintenance informatique': 'fa-solid fa-computer text-primary',
+                                    'Maintenance électrique': 'fa-solid fa-bolt text-warning',
+                                    'Maintenance plomberie': 'fa-solid fa-faucet-drip text-primary',
+                                    'Maintenance climatisation': 'fa-solid fa-snowflake text-info',
+                                    'Maintenance ascenseurs': 'fa-solid fa-elevator text-secondary',
+                                    'Maintenance groupes électrogènes': 'fa-solid fa-car-battery text-warning',
+                                    'Maintenance systèmes de sécurité': 'fa-solid fa-shield-halved text-dark',
+                                    'Maintenance équipements sportifs': 'fa-solid fa-dumbbell text-success',
+                                    'Maintenance équipements médicaux': 'fa-solid fa-kit-medical text-danger',
+                                    'Maintenance équipements pédagogiques': 'fa-solid fa-graduation-cap text-info',
+                                    'Maintenance véhicules': 'fa-solid fa-car-side text-danger',
+                                    'Maintenance équipements de cuisine': 'fa-solid fa-kitchen-set text-warning',
+                                    'Maintenance équipements audiovisuels': 'fa-solid fa-tv text-primary',
+                                    'Articles de plomberies': 'fa-solid fa-wrench text-primary',
+                                    'Articles électriques': 'fa-solid fa-bolt text-warning',
+                                    'Articles de la peinture': 'fa-solid fa-paint-roller text-info'
+                                } %}
+                                
+                                {% set displayed_categories = [] %}
+                                {% for nature in all_budget_natures %}
+                                    {% if nature not in displayed_categories %}
+                                        {% if nature == 'Entretien bâtiments administratifs' %}
+                                            <!-- Sous-catégories d'Entretien (catégorie parente masquée) -->
+                                            <div class="sous-categorie">
+                                                {% for sub_nature in ['Maintenance informatique', 'Maintenance électrique', 'Maintenance plomberie', 'Maintenance climatisation', 'Maintenance ascenseurs', 'Maintenance groupes électrogènes', 'Maintenance systèmes de sécurité'] %}
+                                                    {% if sub_nature in all_budget_natures %}
+                                                    <div class="form-check mb-2">
+                                                        <input class="form-check-input nature-radio" type="radio" 
+                                                               name="categorie_principale" value="{{ sub_nature }}" 
+                                                               id="nature_{{ sub_nature|replace(' ', '_') }}">
+                                                        <label class="form-check-label" for="nature_{{ sub_nature|replace(' ', '_') }}">
+                                                                {% set icon = nature_icons.get(sub_nature) %}
+                                                                {% if icon %}
+                                                                    <i class="{{ icon }} me-2"></i>
+                                                                {% else %}
+                                                                    <i class="fas fa-tools me-2" style="color: #6c757d;"></i>
+                                                                {% endif %}
+                                                            {{ sub_nature }}
+                                                        </label>
+                                                    </div>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                        <!-- Autres catégories principales -->
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input nature-radio" type="radio" 
+                                                   name="categorie_principale" value="{{ nature }}" 
+                                                   id="nature_dyn_{{ loop.index }}" required>
+                                            <label class="form-check-label" for="nature_dyn_{{ loop.index }}">
+                                                {% set n = nature|lower %}
+                                                {% if 'alimentation' in n %}
+                                                    <i class="fa-solid fa-utensils me-2 text-warning"></i>
+                                                {% elif 'fournitures de bureau' in n %}
+                                                    <i class="fa-solid fa-folder-open me-2 text-primary"></i>
+                                                {% elif 'informatique' in n %}
+                                                    <i class="fa-solid fa-desktop me-2 text-primary"></i>
+                                                {% elif 'hygi' in n or 'désinfection' in n or 'desinfection' in n %}
+                                                    <i class="fa-solid fa-pump-medical me-2 text-success"></i>
+                                                {% else %}
+                                                    <i class="fa-solid fa-tag me-2 text-secondary"></i>
+                                                {% endif %}
+                                                <strong>{{ nature }}</strong>
+                                            </label>
+                                        </div>
+                                        {% endif %}
+                                        {% set _ = displayed_categories.append(nature) %}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input nature-radio" type="radio" 
+                                           name="categorie_principale" value="Entretien bâtiments administratifs" 
+                                           id="nature_entretien" required>
+                                    <label class="form-check-label" for="nature_entretien">
+                                        <i class="{{ nature_icons['Entretien bâtiments administratifs'] }} me-2"></i>
+                                        <strong>Entretien Bâtiments Administratifs</strong>
+                                    </label>
+                                </div>
+                                
+                                <!-- Sous-catégories Entretien (Select Dropdown) -->
+                                <div id="sous_prestation_container" style="display: none; margin-left: 30px; margin-top: 10px;">
+                                    <label for="sous_category" class="form-label" style="font-weight: 600; color: #fd7e14;">
+                                        <i class="fa-solid fa-list me-2"></i>Choisir la sous-catégorie <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="sous_category" name="category">
+                                        <option value="">-- Sélectionner une sous-catégorie --</option>
+                                        {% for sub_nature in ['Articles de plomberies', 'Articles électriques', 'Articles de la peinture'] %}
+                                        <option value="{{ sub_nature }}">
+                                            <i class="{{ nature_icons[sub_nature] }}"></i> {{ sub_nature }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text text-success">
+                                        <i class="fa-solid fa-circle-info me-2"></i>
+                                        Sélectionnez la sous-catégorie d'entretien pour cet article
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="unit" class="form-label"><i class="fa-solid fa-ruler-combined me-2"></i>Unité</label>
+                            <select class="form-select" id="unit" name="unit">
+                                <option value="Unité">Unité</option>
+                                <option value="Lot">Lot</option>
+                                <option value="Paquet">Paquet</option>
+                                <option value="Mètre">Mètre</option>
+                                <option value="Boîte">Boîte</option>
+                                <option value="Ramette">Ramette</option>
+                                <option value="Kg">Kg</option>
+                                <option value="Litre">Litre</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="reorder_level" class="form-label"><i class="fa-solid fa-bell me-2"></i>Seuil d'alerte</label>
+                            <input type="number" class="form-control" id="reorder_level" name="reorder_level" min="0" value="5">
+                            <div class="form-text">Alerte lorsque le stock tombe en dessous de ce niveau</div>
+                        </div>
+                    </div>
+                    
+                    
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Enregistrer Article
+                        </button>
+                        <a href="{{ url_for('items') }}" class="btn btn-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Conseils</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-lightbulb text-warning me-2"></i>
+                        <strong>SKU:</strong> Généré automatiquement ({{ next_sku }})
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-lightbulb text-warning me-2"></i>
+                        <strong>Seuil de Commande:</strong> Définit les alertes de stock bas
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-exclamation-circle text-danger me-2"></i>
+                        <strong>Nature de Prestation:</strong> Champ obligatoire
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Initialisation des tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+});
+
+// Gestion des messages flash
+function showSuccessMessage(message, details = '') {
+    if (message) {
+        document.getElementById('successMessage').textContent = message;
+        const detailsEl = document.getElementById('successDetails');
+        if (details) {
+            detailsEl.textContent = details;
+            detailsEl.style.display = 'block';
+        } else {
+            detailsEl.style.display = 'none';
+        }
+        var successModal = new bootstrap.Modal(document.getElementById('successModal'));
+        successModal.show();
+    }
+}
+
+// Gestion des erreurs
+function showError(message, details = '') {
+    const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+    document.getElementById('errorMessage').textContent = message;
+    const errorDetails = document.getElementById('errorDetails');
+    
+    if (details) {
+        errorDetails.textContent = details;
+        errorDetails.style.display = 'block';
+    } else {
+        errorDetails.style.display = 'none';
+    }
+    
+    errorModal.show();
+}
+
+// Gestion de la suppression
+function confirmDelete(deleteUrl, itemName = 'cet élément') {
+    const modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    
+    // Mettre à jour le message de confirmation
+    const message = document.querySelector('#confirmDeleteModal .modal-body h5');
+    message.textContent = `Êtes-vous sûr de vouloir supprimer ${itemName} ?`;
+    
+    // Supprimer les anciens écouteurs d'événements
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    
+    // Ajouter le nouvel écouteur d'événements
+    newConfirmBtn.addEventListener('click', function() {
+        window.location.href = deleteUrl;
+    });
+    
+    // Afficher le modal
+    modal.show();
+}
+
+// Gestion des messages flash au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    const natureRadios = document.querySelectorAll('.nature-radio');
+    const sousPrestationContainer = document.getElementById('sous_prestation_container');
+    const sousCategorySelect = document.getElementById('sous_category');
+    const nameInput = document.getElementById('name');
+    const duplicateWarning = document.getElementById('duplicate-warning');
+    const duplicateMessage = document.getElementById('duplicate-message');
+    const nameAvailable = document.getElementById('name-available');
+    const submitButton = document.querySelector('button[type="submit"]');
+    
+    let checkTimeout;
+    let isDuplicate = false;
+    
+    // Fonction pour obtenir la catégorie sélectionnée
+    function getSelectedCategory() {
+        // Vérifier d'abord le select des sous-catégories
+        if (sousCategorySelect && sousCategorySelect.value) {
+            return sousCategorySelect.value;
+        }
+        
+        // Sinon, vérifier la nature principale
+        const selectedNature = document.querySelector('.nature-radio:checked');
+        return selectedNature ? selectedNature.value : null;
+    }
+    
+    // Fonction pour vérifier les doublons
+    function checkDuplicate() {
+        const itemName = nameInput.value.trim();
+        const category = getSelectedCategory();
+        
+        if (!itemName || !category) {
+            duplicateWarning.style.display = 'none';
+            nameAvailable.style.display = 'none';
+            return;
+        }
+        
+        // Appel AJAX pour vérifier les doublons
+        fetch('/api/check-duplicate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: itemName,
+                category: category
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.exists) {
+                isDuplicate = true;
+                duplicateMessage.textContent = `Un article "${itemName}" existe déjà dans "${category}" (SKU: ${data.sku})`;
+                duplicateWarning.style.display = 'block';
+                nameAvailable.style.display = 'none';
+                nameInput.classList.add('is-invalid');
+                nameInput.classList.remove('is-valid');
+                submitButton.disabled = true;
+            } else {
+                isDuplicate = false;
+                duplicateWarning.style.display = 'none';
+                nameAvailable.style.display = 'block';
+                nameInput.classList.remove('is-invalid');
+                nameInput.classList.add('is-valid');
+                submitButton.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors de la vérification:', error);
+            isDuplicate = false;
+            duplicateWarning.style.display = 'none';
+            nameAvailable.style.display = 'none';
+            nameInput.classList.remove('is-invalid', 'is-valid');
+            submitButton.disabled = false;
+        });
+    }
+    
+    // Vérifier lors de la saisie du nom (avec debounce)
+    nameInput.addEventListener('input', function() {
+        clearTimeout(checkTimeout);
+        nameInput.classList.remove('is-invalid', 'is-valid');
+        duplicateWarning.style.display = 'none';
+        nameAvailable.style.display = 'none';
+        
+        checkTimeout = setTimeout(checkDuplicate, 500); // Attendre 500ms après la dernière frappe
+    });
+    
+    // Vérifier lors du changement de catégorie
+    natureRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const selectedValue = this.value;
+            
+            if (selectedValue === 'Entretien bâtiments administratifs') {
+                // Afficher le sous-menu avec animation
+                sousPrestationContainer.style.display = 'block';
+                setTimeout(() => sousPrestationContainer.classList.add('show'), 10);
+                
+                // Rendre le select obligatoire
+                if (sousCategorySelect) {
+                    sousCategorySelect.required = true;
+                    sousCategorySelect.value = ''; // Réinitialiser la sélection
+                }
+            } else {
+                // Masquer le sous-menu
+                sousPrestationContainer.classList.remove('show');
+                setTimeout(() => sousPrestationContainer.style.display = 'none', 300);
+                
+                // Rendre le select non obligatoire
+                if (sousCategorySelect) {
+                    sousCategorySelect.required = false;
+                    sousCategorySelect.value = '';
+                }
+                
+                // Vérifier les doublons avec la nouvelle catégorie
+                if (nameInput.value.trim()) {
+                    checkDuplicate();
+                }
+            }
+        });
+    });
+    
+    // Gérer le changement de sous-catégorie (select dropdown)
+    if (sousCategorySelect) {
+        sousCategorySelect.addEventListener('change', function() {
+            // Vérifier les doublons avec la nouvelle sous-catégorie
+            if (nameInput.value.trim() && this.value) {
+                checkDuplicate();
+            }
+        });
+    }
+    
+    // Empêcher la soumission si doublon détecté
+    document.querySelector('form').addEventListener('submit', function(e) {
+        if (isDuplicate) {
+            e.preventDefault();
+            alert('⚠️ Impossible de créer cet article : un article avec ce nom existe déjà dans cette catégorie.');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}
+

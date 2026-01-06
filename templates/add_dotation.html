@@ -1,0 +1,889 @@
+{% extends "base.html" %}
+
+{% block title %}Nouvelle Dotation - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Style amélioré pour les checkboxes */
+    .nature-checkbox {
+        width: 1.25rem;
+        height: 1.25rem;
+        cursor: pointer;
+        border: 2px solid #28a745;
+    }
+    
+    .nature-checkbox:checked {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+    
+    .nature-checkbox:hover {
+        border-color: #20c997;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+    
+    .form-check-label {
+        cursor: pointer;
+        user-select: none;
+        padding-left: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    
+    .form-check-label:hover {
+        color: #28a745;
+        transform: translateX(3px);
+    }
+    
+    .form-check {
+        padding: 0.5rem;
+        border-radius: 6px;
+        transition: background-color 0.2s ease;
+    }
+    
+    .form-check:hover {
+        background-color: rgba(40, 167, 69, 0.05);
+    }
+    
+    .form-check-input:checked ~ .form-check-label {
+        color: #28a745;
+        font-weight: 600;
+    }
+    
+    /* Styles pour le bouton de retour dans l'en-tête */
+    .card-header .btn-outline-light:hover {
+        background: rgba(255, 255, 255, 0.2) !important;
+        border-color: rgba(255, 255, 255, 0.9) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); padding: 1.5rem; border-bottom: 3px solid #20c997;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0" style="font-weight: 700; font-size: 1.5rem; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); letter-spacing: 0.5px;">
+                            <i class="fas fa-gift me-2" style="font-size: 1.6rem; vertical-align: middle;"></i>
+                            Créer une Nouvelle Dotation
+                        </h4>
+                        <a href="{{ url_for('dotations') }}" class="btn btn-outline-light" style="border: 2px solid rgba(255, 255, 255, 0.7); background: rgba(255, 255, 255, 0.1); color: #fff; padding: 8px 20px; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.3s ease;">
+                            <i class="fas fa-arrow-left me-2"></i>Retour aux Dotations
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form autocomplete="off" method="POST" action="{{ url_for('add_dotation') }}" id="dotationForm">
+                        <!-- Section 1: Unité Destinataire -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-building me-2"></i>
+                                    1. Unité Destinataire
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <label for="unite_id" class="form-label mb-0">Unité <span class="text-danger">*</span></label>
+                                        </div>
+                                        <select class="form-select" id="unite_id" name="unite_id" required>
+                                            <option value="">Sélectionner une unité...</option>
+                                            {% for unite in unites %}
+                                            <option value="{{ unite.id }}">{{ unite.nom }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="service_id" class="form-label">Service <span class="text-danger" id="service_required_indicator" style="display:none;">*</span></label>
+                                        <select class="form-select" id="service_id" name="service_id" disabled>
+                                            <option value="">Sélectionner d'abord une unité...</option>
+                                        </select>
+                                        <div class="form-text" id="service_help_text">Sélectionnez d'abord une unité</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Natures de Prestation (Sélection Multiple) -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-tag me-2"></i>
+                                    2. Natures de Prestation <span class="badge bg-success">Sélection Multiple</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                
+                                <div class="row">
+                                    <!-- Catégories principales -->
+                                    <div class="col-md-12">
+                                        <label class="form-label fw-bold" style="font-size: 1.1rem;">
+                                            Catégories Principales <span class="text-danger">*</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Boutons de sélection multiple -->
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="d-flex align-items-center">
+                                                <span id="selectedCountBadge" class="badge bg-secondary me-2">0 sélectionné(s)</span>
+                                                <div id="selectionLoading" class="spinner-border spinner-border-sm text-primary d-none" role="status">
+                                                    <span class="visually-hidden">Chargement...</span>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <button type="button" id="selectAllBtn" class="btn btn-sm btn-outline-primary"
+                                                        title="Sélectionner tous les articles">
+                                                    <i class="fas fa-check-square me-1"></i> Tout
+                                                </button>
+                                                <button type="button" id="invertSelectionBtn" class="btn btn-sm btn-outline-secondary"
+                                                        title="Inverser la sélection">
+                                                    <i class="fas fa-exchange-alt me-1"></i> Inverser
+                                                </button>
+                                                <button type="button" id="deselectAllBtn" class="btn btn-sm btn-outline-danger"
+                                                        title="Tout désélectionner" disabled>
+                                                    <i class="fas fa-times-circle me-1"></i> Aucun
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <!-- Catégories principales -->
+                                    <div class="col-md-6">
+                                        {% for nature in all_budget_natures %}
+                                            {% if nature != 'Entretien bâtiments administratifs' %}
+                                            {% set icon_class = '' %}
+                                            {% if 'Fournitures pour le matériel informatique' in nature %}
+                                                {% set icon_class = 'fa-desktop text-info' %}
+                                            {% elif 'Alimentation à usage Humaine' in nature %}
+                                                {% set icon_class = 'fa-utensils text-warning' %}
+                                            {% elif 'Fournitures de bureaux et documentation' in nature %}
+                                                {% set icon_class = 'fa-file-alt text-primary' %}
+                                            {% elif 'Produits d\'hygiène et de désinfection' in nature %}
+                                                {% set icon_class = 'fa-pump-soap text-success' %}
+                                            {% else %}
+                                                {% set icon_class = 'fa-tag text-secondary' %}
+                                            {% endif %}
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input nature-checkbox" type="checkbox" 
+                                                       name="natures[]" value="{{ nature }}" 
+                                                       id="nature_dyn_{{ loop.index }}">
+                                                <label class="form-check-label" for="nature_dyn_{{ loop.index }}">
+                                                    <i class="fas {{ icon_class }} me-2"></i> {{ nature }}
+                                                </label>
+                                            </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-tools me-2" style="color: #fd7e14;"></i>
+                                            <strong>Entretien Bâtiments Administratifs</strong>
+                                            <span class="text-muted ms-2" style="font-size: 0.9rem;">Sous-catégories</span>
+                                        </div>
+                                        
+                                        <div class="form-check mb-2 ms-4">
+                                            <input class="form-check-input nature-checkbox" type="checkbox" 
+                                                   name="natures[]" value="Articles de plomberies" 
+                                                   id="nature_plomberie">
+                                            <label class="form-check-label" for="nature_plomberie">
+                                                <i class="fas fa-wrench me-1 text-primary"></i> Articles de plomberies
+                                            </label>
+                                        </div>
+                                        
+                                        <div class="form-check mb-2 ms-4">
+                                            <input class="form-check-input nature-checkbox" type="checkbox" 
+                                                   name="natures[]" value="Articles électriques" 
+                                                   id="nature_electrique">
+                                            <label class="form-check-label" for="nature_electrique">
+                                                <i class="fas fa-bolt me-1 text-warning"></i> Articles électriques
+                                            </label>
+                                        </div>
+                                        
+                                        <div class="form-check mb-2 ms-4">
+                                            <input class="form-check-input nature-checkbox" type="checkbox" 
+                                                   name="natures[]" value="Articles de la peinture" 
+                                                   id="nature_peinture">
+                                            <label class="form-check-label" for="nature_peinture">
+                                                <i class="fas fa-paint-roller me-1 text-info"></i> Articles de la peinture
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <span class="badge bg-secondary" id="selectedCount">0 nature(s) sélectionnée(s)</span>
+                                </div>
+                                
+                                <script>
+                                // Gestion des boutons de sélection multiple
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    const selectAllBtn = document.getElementById('selectAllBtn');
+                                    const deselectAllBtn = document.getElementById('deselectAllBtn');
+                                    const invertSelectionBtn = document.getElementById('invertSelectionBtn');
+                                    const selectedCountBadge = document.getElementById('selectedCountBadge');
+                                    const selectionLoading = document.getElementById('selectionLoading');
+                                    const selectedCount = document.getElementById('selectedCount');
+
+                                    // Mettre à jour l'état des boutons et des compteurs
+                                    function updateSelectionUI() {
+                                        const checkboxes = document.querySelectorAll('.form-check-input[type="checkbox"][name^="natures"]');
+                                        const checkedCount = document.querySelectorAll('.form-check-input[type="checkbox"][name^="natures"]:checked').length;
+                                        const totalCount = checkboxes.length;
+                                        
+                                        // Mettre à jour les compteurs
+                                        selectedCountBadge.textContent = `${checkedCount} sélectionné(s)`;
+                                        selectedCount.textContent = `${checkedCount} nature(s) sélectionnée(s)`;
+                                        selectedCount.className = `badge ${checkedCount > 0 ? 'bg-primary' : 'bg-secondary'}`;
+                                        selectedCountBadge.className = `badge ${checkedCount > 0 ? 'bg-primary' : 'bg-secondary'} me-2`;
+                                        
+                                        // Activer/désactiver les boutons
+                                        deselectAllBtn.disabled = checkedCount === 0;
+                                        selectAllBtn.disabled = checkedCount === totalCount && totalCount > 0;
+                                        invertSelectionBtn.disabled = totalCount === 0;
+                                        
+                                        // Mettre à jour les styles des cases à cocher
+                                        checkboxes.forEach(checkbox => {
+                                            const label = document.querySelector(`label[for="${checkbox.id}"]`);
+                                            if (checkbox.checked) {
+                                                label.classList.add('fw-bold', 'text-success');
+                                            } else {
+                                                label.classList.remove('fw-bold', 'text-success');
+                                            }
+                                        });
+                                        
+                                        // Charger les articles si nécessaire
+                                        if (checkedCount > 0) {
+                                            loadArticlesForMultipleNatures();
+                                        } else {
+                                            const articlesSection = document.getElementById('articlesSection');
+                                            if (articlesSection) {
+                                                articlesSection.style.display = 'none';
+                                            }
+                                        }
+                                    }
+
+                                    // Sélectionner tout
+                                    function selectAll(select = true) {
+                                        const checkboxes = document.querySelectorAll('.form-check-input[type="checkbox"][name^="natures"]');
+                                        checkboxes.forEach(checkbox => {
+                                            checkbox.checked = select;
+                                        });
+                                        updateSelectionUI();
+                                    }
+
+                                    // Inverser la sélection
+                                    function invertSelection() {
+                                        const checkboxes = document.querySelectorAll('.form-check-input[type="checkbox"][name^="natures"]');
+                                        checkboxes.forEach(checkbox => {
+                                            checkbox.checked = !checkbox.checked;
+                                        });
+                                        updateSelectionUI();
+                                    }
+
+                                    // Écouteurs d'événements
+                                    if (selectAllBtn && deselectAllBtn && invertSelectionBtn) {
+                                        selectAllBtn.addEventListener('click', () => selectAll(true));
+                                        deselectAllBtn.addEventListener('click', () => selectAll(false));
+                                        invertSelectionBtn.addEventListener('click', invertSelection);
+                                        
+                                        // Mettre à jour l'état des boutons quand une case est cochée/décochée
+                                        document.addEventListener('change', (e) => {
+                                            if (e.target.matches('.form-check-input[type="checkbox"][name^="natures"]')) {
+                                                updateSelectionUI();
+                                            }
+                                        });
+                                        
+                                        // Mettre à jour l'état initial
+                                        updateSelectionUI();
+                                    }
+                                    
+                                    // Rendre la fonction accessible globalement
+                                    window.updateSelectionUI = updateSelectionUI;
+                                });
+                                </script>
+                            </div>
+                        </div>
+
+                        <!-- Section 3: Sélection des Articles -->
+                        <div class="card mb-4" id="articlesSection" style="display: none;">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-boxes me-2"></i>
+                                    3. Sélection des Articles
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="articlesContainer">
+                                    <div class="alert alert-secondary text-center">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 4: Note / Motif -->
+                        <div class="card mb-4" id="noteSection" style="display: none;">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-sticky-note me-2"></i>
+                                    4. Note / Motif
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <textarea class="form-control" id="note" name="note" rows="3" 
+                                          placeholder="Ex: Dotation trimestrielle, Équipement nouveau service..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Boutons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('dotations') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Annuler
+                            </a>
+                            <button type="submit" class="btn btn-success" id="submitBtn" disabled>
+                                <i class="fas fa-gift me-2"></i>Créer la Dotation
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Succès -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 15px; box-shadow: 0 10px 40px rgba(40, 167, 69, 0.4); border: none; overflow: hidden;">
+            <div style="background: rgba(0, 0, 0, 0.15); padding: 15px 25px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="color: #fff; font-size: 1.1rem; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-check-circle" style="margin-right: 10px; animation: iconPulse 2s ease-in-out infinite;"></i>Dotation(s) Créée(s) avec Succès
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div style="padding: 25px 30px 20px 30px; color: #fff;" id="successModalBody">
+                <!-- Contenu dynamique -->
+            </div>
+            <div style="background: rgba(0, 0, 0, 0.15); padding: 15px 25px; display: flex; justify-content: space-between; gap: 15px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="flex: 1; padding: 10px 25px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; background: rgba(255, 255, 255, 0.95); border: none; color: #000; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.3s ease;">
+                    <i class="fas fa-times me-2"></i>Fermer
+                </button>
+                <button type="button" id="returnToDotationsBtn" class="btn btn-primary" style="flex: 1.5; padding: 10px 25px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; background: #007bff; border: none; color: #fff; box-shadow: 0 2px 8px rgba(0, 123, 255, 0.4); text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; text-align: center; transition: all 0.3s ease;">
+                    <i class="fas fa-arrow-left me-2"></i>Retour aux Dotations
+                </button>
+                <a href="{{ url_for('dotations') }}" class="btn btn-warning" style="flex: 1.5; padding: 10px 25px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; background: #ffc107; border: none; color: #000; box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4); text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; text-align: center; transition: all 0.3s ease;">
+                    <i class="fas fa-list me-2"></i>Voir les Dotations
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes iconPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#successModal .modal-content {
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+#successModal .btn-light:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+#successModal .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 123, 255, 0.5);
+    background: #0056b3;
+}
+
+#successModal .btn-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 193, 7, 0.5);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // SYSTÈME DE SÉLECTION MULTIPLE
+    const natureCheckboxes = document.querySelectorAll('.nature-checkbox');
+    const selectedCount = document.getElementById('selectedCount');
+    const articlesSection = document.getElementById('articlesSection');
+    const noteSection = document.getElementById('noteSection');
+    const articlesContainer = document.getElementById('articlesContainer');
+    const submitBtn = document.getElementById('submitBtn');
+    const uniteSelect = document.getElementById('unite_id');
+    const serviceSelect = document.getElementById('service_id');
+    const alimentationContainer = document.getElementById('nature_alimentation_container');
+    const alimentationCheckbox = document.getElementById('nature_alimentation');
+    let serviceRequiredForUnite = false;
+    
+    let selectedNatures = [];
+    let selectedArticles = new Set();
+    let loadedArticles = {}; // Stocke les articles par nature
+    
+    // Gestion des checkboxes de natures
+    natureCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                selectedNatures.push(this.value);
+            } else {
+                selectedNatures = selectedNatures.filter(n => n !== this.value);
+            }
+            
+            // Mettre à jour le compteur
+            selectedCount.textContent = `${selectedNatures.length} nature(s) sélectionnée(s)`;
+            
+            // Charger les articles
+            loadArticlesForMultipleNatures();
+        });
+    });
+    
+    // Fonction pour charger les articles de plusieurs natures
+    function loadArticlesForMultipleNatures() {
+        if (selectedNatures.length === 0) {
+            articlesSection.style.display = 'none';
+            noteSection.style.display = 'none';
+            submitBtn.disabled = true;
+            return;
+        }
+        
+        articlesSection.style.display = 'block';
+        noteSection.style.display = 'block';
+        articlesContainer.innerHTML = '<div class="alert alert-secondary text-center"><i class="fas fa-spinner fa-spin me-2"></i></div>';
+        
+        // Charger les articles pour toutes les natures sélectionnées
+        Promise.all(selectedNatures.map(nature => fetchArticlesByNature(nature)))
+            .then(() => {
+                displayArticles();
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                articlesContainer.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>Erreur lors du chargement des articles</div>';
+            });
+    }
+    
+    // Fonction pour récupérer les articles d'une nature
+    function fetchArticlesByNature(nature) {
+        if (loadedArticles[nature]) {
+            return Promise.resolve(loadedArticles[nature]);
+        }
+        
+        return fetch(`/api/items-by-category/${encodeURIComponent(nature)}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.success && Array.isArray(data.items)) {
+                    loadedArticles[nature] = data.items;
+                } else {
+                    console.error('Réponse inattendue pour la nature', nature, data);
+                    loadedArticles[nature] = [];
+                }
+                return loadedArticles[nature];
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement des articles pour', nature, error);
+                loadedArticles[nature] = [];
+                return loadedArticles[nature];
+            });
+    }
+    
+    // Fonction pour afficher les articles groupés par nature
+    function displayArticles() {
+        let html = '';
+        
+        selectedNatures.forEach(nature => {
+            const articles = loadedArticles[nature] || [];
+            
+            // Icône et couleur selon la nature
+            let icon = 'fa-tag';
+            let color = '#0d6efd';
+            
+            if (nature === 'Fournitures de bureaux et documentation') {
+                icon = 'fa-pen'; color = '#0d6efd';
+            } else if (nature === "Produits d'hygiène et de désinfection") {
+                icon = 'fa-soap'; color = '#198754';
+            } else if (nature === 'Fournitures pour le matériel informatique') {
+                icon = 'fa-laptop'; color = '#6f42c1';
+            } else if (nature === 'Articles de plomberies') {
+                icon = 'fa-wrench'; color = '#fd7e14';
+            } else if (nature === 'Articles électriques') {
+                icon = 'fa-bolt'; color = '#ffc107';
+            } else if (nature === 'Articles de la peinture') {
+                icon = 'fa-paint-roller'; color = '#0dcaf0';
+            } else if (nature === 'Alimentation à usage Humaine') {
+                icon = 'fa-coffee'; color = '#795548';
+            }
+            
+            // Filtrer uniquement les articles avec stock > 0
+            const articlesInStock = articles.filter(article => article.quantity > 0);
+            
+            html += `
+                <div class="card mb-3">
+                    <div class="card-header" style="background-color: ${color}15; border-left: 4px solid ${color};">
+                        <h6 class="mb-0">
+                            <i class="fas ${icon} me-2" style="color: ${color};"></i>
+                            ${nature}
+                            <span class="badge bg-secondary float-end">${articlesInStock.length} article(s) en stock</span>
+                        </h6>
+                    </div>
+                    <div class="card-body">
+            `;
+            
+            if (articlesInStock.length === 0) {
+                html += '<p class="text-muted mb-0">Aucun article en stock pour cette nature</p>';
+            } else {
+                html += '<div class="table-responsive"><table class="table table-sm table-hover">';
+                html += '<thead><tr><th width="40"></th><th>Article</th><th>Stock</th><th>Unité</th><th width="150">Quantité</th></tr></thead><tbody>';
+                
+                articlesInStock.forEach(article => {
+                    const isChecked = selectedArticles.has(article.id);
+                    html += `
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="form-check-input article-checkbox" 
+                                       data-article-id="${article.id}" 
+                                       data-nature="${nature}"
+                                       ${isChecked ? 'checked' : ''}>
+                            </td>
+                            <td>
+                                <strong>${article.name}</strong><br>
+                                <small class="text-muted">${article.sku}</small>
+                            </td>
+                            <td>
+                                <span class="badge ${article.quantity > article.reorder_level ? 'bg-success' : 'bg-warning'}">
+                                    ${article.quantity}
+                                </span>
+                            </td>
+                            <td>${article.unit}</td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm quantity-input" 
+                                       name="quantities[${article.id}]" 
+                                       data-article-id="${article.id}"
+                                       min="1" max="${article.quantity}" 
+                                       value="1" 
+                                       ${isChecked ? '' : 'disabled'}>
+                                <input type="hidden" name="natures_map[${article.id}]" value="${nature}">
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table></div>';
+            }
+            
+            html += '</div></div>';
+        });
+        
+        articlesContainer.innerHTML = html;
+        
+        // Ajouter les événements sur les checkboxes d'articles
+        document.querySelectorAll('.article-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const articleId = parseInt(this.dataset.articleId);
+                const quantityInput = document.querySelector(`input[data-article-id="${articleId}"].quantity-input`);
+                
+                if (this.checked) {
+                    selectedArticles.add(articleId);
+                    quantityInput.disabled = false;
+                } else {
+                    selectedArticles.delete(articleId);
+                    quantityInput.disabled = true;
+                }
+                
+                updateSubmitButton();
+            });
+        });
+        
+        updateSubmitButton();
+    }
+    
+    // Mettre à jour le bouton de soumission
+    function updateSubmitButton() {
+        const hasUnite = uniteSelect.value !== '';
+        const hasArticles = selectedArticles.size > 0;
+        const serviceRequired = serviceSelect.required;
+        const hasService = serviceSelect.value !== '';
+        
+        // Désactiver si : pas d'unité OU pas d'articles OU (service requis ET pas de service)
+        submitBtn.disabled = !hasUnite || !hasArticles || (serviceRequired && !hasService);
+    }
+    
+    // Gestion de l'unité et du service
+    const serviceContainer = document.querySelector('.col-md-6.mb-3:has(#service_id)'); // Conteneur du champ service
+    const serviceRequiredIndicator = document.getElementById('service_required_indicator');
+    const serviceHelpText = document.getElementById('service_help_text');
+    
+    // Fonction pour gérer le changement d'unité
+    function handleUniteChange() {
+        const uniteId = uniteSelect.value;
+        const uniteText = uniteSelect.options[uniteSelect.selectedIndex]?.text || '';
+        
+        if (!uniteId) {
+            serviceContainer.style.display = 'block';
+            serviceSelect.disabled = true;
+            serviceSelect.innerHTML = '<option value="">Sélectionner d\'abord une unité...</option>';
+            serviceSelect.required = false;
+            serviceRequiredIndicator.style.display = 'none';
+            serviceHelpText.textContent = 'Sélectionnez d\'abord une unité';
+            updateSubmitButton();
+            return;
+        }
+        
+        // Vérifier si c'est une unité de type "Centre" (insensible à la casse)
+        const isCentre = uniteText.toLowerCase().includes('centre');
+        const isSidiKacem = uniteText.toUpperCase().includes('SIDI KACEM');
+        
+        if (isCentre) {
+            // Masquer complètement le champ service pour les centres
+            serviceContainer.style.display = 'none';
+            serviceSelect.value = ''; // Réinitialiser la valeur
+            serviceSelect.required = false;
+
+            // Masquer la nature "Alimentation à usage Humaine" pour les centres
+            if (alimentationContainer) {
+                alimentationContainer.style.display = 'none';
+            }
+            // Si elle était cochée, la décocher et mettre à jour l'état
+            if (alimentationCheckbox && alimentationCheckbox.checked) {
+                alimentationCheckbox.checked = false;
+                selectedNatures = selectedNatures.filter(n => n !== 'Alimentation à usage Humaine');
+                // Mettre à jour compteur + rafraîchir les articles
+                selectedCount.textContent = `${selectedNatures.length} nature(s) sélectionnée(s)`;
+                loadArticlesForMultipleNatures();
+            }
+
+            updateSubmitButton();
+            return;
+        }
+
+        // Pour les autres unités, afficher et charger les services
+        serviceContainer.style.display = 'block';
+        // Réafficher la nature "Alimentation à usage Humaine" pour les unités non-centre
+        if (alimentationContainer) {
+            alimentationContainer.style.display = 'block';
+        }
+        // Sidi Kacem => service obligatoire, autres unités => optionnel
+        serviceRequiredForUnite = !!isSidiKacem;
+        loadServices(uniteId, serviceRequiredForUnite);
+    }
+    
+    // Fonction pour charger les services d'une unité
+    function loadServices(uniteId, requiredMode = false) {
+        serviceSelect.disabled = true;
+        serviceSelect.innerHTML = '<option value="">Chargement des services...</option>';
+        
+        fetch(`/api/services/${uniteId}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Erreur réseau');
+                return response.json();
+            })
+            .then(services => {
+                // Placeholder selon mode
+                if (requiredMode) {
+                    serviceSelect.innerHTML = '<option value="">Sélectionner un service...</option>';
+                    serviceSelect.required = true;
+                    serviceRequiredIndicator.style.display = 'inline';
+                    serviceHelpText.textContent = "Sélectionnez le service pour l'unité de Sidi Kacem";
+                    serviceHelpText.classList.remove('text-danger');
+                    serviceHelpText.classList.add('text-success');
+                } else {
+                    serviceSelect.innerHTML = '<option value="">Aucun service (optionnel)</option>';
+                    serviceSelect.required = false;
+                    serviceRequiredIndicator.style.display = 'none';
+                    serviceHelpText.textContent = 'Service optionnel';
+                    serviceHelpText.classList.remove('text-danger');
+                    serviceHelpText.classList.remove('text-success');
+                }
+                
+                services.forEach(service => {
+                    serviceSelect.innerHTML += `<option value="${service.id}">${service.nom}</option>`;
+                });
+                
+                serviceSelect.disabled = false;
+                updateSubmitButton();
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                serviceSelect.innerHTML = '<option value="">Erreur de chargement des services</option>';
+                serviceHelpText.textContent = 'Impossible de charger les services';
+                serviceHelpText.classList.add('text-danger');
+                serviceHelpText.classList.remove('text-success');
+            });
+    }
+    
+    // Écouter les changements sur la sélection d'unité
+    uniteSelect.addEventListener('change', handleUniteChange);
+    
+    // Initialiser l'état au chargement
+    if (uniteSelect.value) {
+        handleUniteChange();
+    }
+    
+    // Mettre à jour le bouton quand on change de service
+    serviceSelect.addEventListener('change', function() {
+        updateSubmitButton();
+    });
+    
+    // Gestion de la soumission du formulaire
+    const dotationForm = document.getElementById('dotationForm');
+    dotationForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Désactiver le bouton pendant la soumission
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Création en cours...';
+        
+        // Envoyer le formulaire en AJAX
+        const formData = new FormData(dotationForm);
+        
+        fetch('{{ url_for("add_dotation") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Construire le contenu du modal avec le style élégant
+                let modalContent = '';
+                
+                // Message de succès
+                modalContent += '<div style="text-align: center; margin-bottom: 20px; font-size: 1rem; line-height: 1.6; font-weight: 500;">';
+                modalContent += `<div style="font-size: 1.2rem; margin-bottom: 8px;">✓ ${data.dotations.length} dotation(s) créée(s) avec succès</div>`;
+                modalContent += '<div style="opacity: 0.9;">Les dotations ont été enregistrées dans le système</div>';
+                modalContent += '</div>';
+                
+                // Liste des dotations créées
+                data.dotations.forEach((dotation, index) => {
+                    modalContent += `<div style="background: rgba(255, 255, 255, 0.15); padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.25);">`;
+                    modalContent += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">';
+                    modalContent += `<div style="font-size: 0.85rem; opacity: 0.9;"><i class="fas fa-gift me-2"></i>Dotation ${index + 1}</div>`;
+                    modalContent += `<div style="font-size: 1rem; font-weight: 700; letter-spacing: 0.5px;">${dotation.numero}</div>`;
+                    modalContent += '</div>';
+                    modalContent += '<div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px;">';
+                    modalContent += `<span style="opacity: 0.9;"><i class="fas fa-tag me-1"></i>Catégorie:</span>`;
+                    modalContent += `<span style="font-weight: 600;">${dotation.categorie}</span>`;
+                    modalContent += '</div>';
+                    modalContent += '<div style="display: flex; justify-content: space-between; font-size: 0.9rem;">';
+                    modalContent += `<span style="opacity: 0.9;"><i class="fas fa-boxes me-1"></i>Articles:</span>`;
+                    modalContent += `<span style="background: rgba(255, 255, 255, 0.25); padding: 2px 10px; border-radius: 12px; font-weight: 700;">${dotation.nb_articles}</span>`;
+                    modalContent += '</div>';
+                    modalContent += '</div>';
+                });
+                
+                // Unité destinataire
+                modalContent += '<div style="background: rgba(0, 0, 0, 0.2); padding: 12px 15px; border-radius: 8px; font-size: 0.9rem; line-height: 1.4; text-align: center; border: 1px solid rgba(255, 255, 255, 0.2); margin-top: 15px;">';
+                modalContent += `<i class="fas fa-building me-2"></i><strong>Unité destinataire:</strong> ${data.unite}`;
+                modalContent += '</div>';
+                
+                // Afficher le modal
+                document.getElementById('successModalBody').innerHTML = modalContent;
+                const successModal = new bootstrap.Modal(document.getElementById('successModal'), {
+                    backdrop: 'static',
+                    keyboard: true
+                });
+                successModal.show();
+                
+                // Ajuster z-index
+                setTimeout(function() {
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    const modalElement = document.getElementById('successModal');
+                    if (backdrop) backdrop.style.zIndex = '9998';
+                    if (modalElement) modalElement.style.zIndex = '9999';
+                }, 50);
+                
+                // ============================================
+                // RÉINITIALISATION COMPLÈTE DU FORMULAIRE
+                // ============================================
+                
+                // 1. Réinitialiser l'unité
+                uniteSelect.value = '';
+                
+                // 2. Réinitialiser le service
+                serviceSelect.value = '';
+                serviceSelect.disabled = true;
+                serviceSelect.innerHTML = '<option value="">Sélectionner d\'abord une unité...</option>';
+                serviceSelect.required = false;
+                serviceRequiredIndicator.style.display = 'none';
+                serviceHelpText.textContent = 'Sélectionnez d\'abord une unité';
+                serviceContainer.style.display = 'block';
+                
+                // 3. Décocher toutes les natures de prestation
+                natureCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                selectedNatures = [];
+                selectedCount.textContent = '0 nature(s) sélectionnée(s)';
+                
+                // 4. Masquer les sections articles et note
+                articlesSection.style.display = 'none';
+                noteSection.style.display = 'none';
+                
+                // 5. Vider le conteneur d'articles
+                articlesContainer.innerHTML = '<div class="alert alert-secondary text-center"><i class="fas fa-spinner fa-spin me-2"></i></div>';
+                
+                // 6. Réinitialiser les articles sélectionnés
+                selectedArticles.clear();
+                loadedArticles = {};
+                
+                // 7. Vider le champ note
+                document.getElementById('note').value = '';
+                
+                // 8. Réinitialiser le bouton submit
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-gift me-2"></i>Créer la Dotation';
+            } else {
+                // Afficher l'erreur
+                alert(data.message || 'Erreur lors de la création de la dotation');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-gift me-2"></i>Créer la Dotation';
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la création de la dotation');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-gift me-2"></i>Créer la Dotation';
+        });
+    });
+
+    // Ajouter le gestionnaire d'événements pour le bouton de retour
+    const returnBtn = document.getElementById('returnToDotationsBtn');
+    if (returnBtn) {
+        returnBtn.addEventListener('click', function() {
+            window.location.href = '{{ url_for("dotations") }}';
+        });
+    }
+});
+</script>
+{% endblock %}

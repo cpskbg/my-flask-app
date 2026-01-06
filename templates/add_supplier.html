@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    body {
+        overflow-x: hidden;
+    }
+    .card-header {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+    #contacts-container .contact-group {
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 1rem;
+        margin-bottom: 1rem;
+    }
+    #contacts-container .contact-group:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h4><i class="fas fa-user-plus me-2"></i>Ajouter un Nouveau Fournisseur</h4>
+        </div>
+        <div class="card-body">
+            <form autocomplete="off" method="post" action="{{ url_for('add_fournisseur') }}">
+                
+                <!-- Section 1: Informations Générales -->
+                <div class="mb-4">
+                    <h5><i class="fas fa-info-circle me-2"></i>Informations Générales</h5>
+                    <hr>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Raison Sociale <span class="text-danger">*</span></label>
+                            <input type="text" name="nom" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Siège Social <span class="text-danger">*</span></label>
+                            <input type="text" name="adresse" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Ville <span class="text-danger">*</span></label>
+                            <input type="text" name="ville" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">E-mail <span class="text-danger">*</span></label>
+                            <input type="email" name="email" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Téléphone <span class="text-danger">*</span></label>
+                            <input type="tel" name="telephone" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fax</label>
+                            <input type="tel" name="fax" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Informations Légales et Financières -->
+                <div class="mb-4">
+                    <h5><i class="fas fa-balance-scale me-2"></i>Informations Légales & Financières</h5>
+                    <hr>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Registre de Commerce <span class="text-danger">*</span></label>
+                            <input type="text" name="registre_commerce" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Identification Foncière <span class="text-danger">*</span></label>
+                            <input type="text" name="identification_fonciere" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Compte Bancaire (RIB) <span class="text-danger">*</span></label>
+                            <input type="text" name="compte_bancaire_ribe" class="form-control" pattern="\d{24}" inputmode="numeric" maxlength="24" title="Saisissez exactement 24 chiffres" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Contacts -->
+                <div class="mb-4">
+                    <h5><i class="fas fa-users me-2"></i>Contacts</h5>
+                    <hr>
+                    <div id="contacts-container">
+                        <!-- Les contacts ajoutés dynamiquement apparaîtront ici -->
+                    </div>
+                    <button type="button" id="add-contact-btn" class="btn btn-sm btn-outline-primary mt-2">
+                        <i class="fas fa-plus me-1"></i> Ajouter un contact
+                    </button>
+                </div>
+
+                <!-- Section 4: Catégories de Services -->
+                {% include '_supplier_categories_block.html' %}
+
+                <!-- Boutons d'action -->
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a href="{{ url_for('fournisseurs') }}" class="btn btn-secondary">Annuler</a>
+                    <button type="submit" class="btn btn-primary">Enregistrer le Fournisseur</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const contactsContainer = document.getElementById('contacts-container');
+    const addContactBtn = document.getElementById('add-contact-btn');
+    let contactIndex = 0;
+
+    addContactBtn.addEventListener('click', function() {
+        const contactGroup = document.createElement('div');
+        contactGroup.classList.add('contact-group', 'row', 'g-3', 'align-items-end');
+        
+        contactGroup.innerHTML = `
+            <div class="col-md-3">
+                <label class="form-label">Nom du Contact <span class="text-danger">*</span></label>
+                <input type="text" name="contact_nom_${contactIndex}" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Poste</label>
+                <input type="text" name="contact_poste_${contactIndex}" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Email</label>
+                <input type="email" name="contact_email_${contactIndex}" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Téléphone</label>
+                <input type="tel" name="contact_telephone_${contactIndex}" class="form-control">
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-contact-btn">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        
+        contactsContainer.appendChild(contactGroup);
+        contactIndex++;
+    });
+
+    contactsContainer.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-contact-btn')) {
+            e.target.closest('.contact-group').remove();
+        }
+    });
+});
+</script>
+{% endblock %}

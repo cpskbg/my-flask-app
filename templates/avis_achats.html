@@ -1,0 +1,753 @@
+{% extends "base.html" %}
+
+{% block title %}Avis d'Achat - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% import "macros/nature_icons.html" as nature_macros %}
+
+{# Macro pour afficher l'icône et la couleur selon la nature #}
+{% macro nature_icon(nature) -%}
+{{ nature_macros.icon(nature) }}
+{%- endmacro %}
+{% block extra_css %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded-3"
+        style="background: linear-gradient(135deg, rgba(255, 235, 59, 0.15) 0%, rgba(0, 188, 212, 0.15) 100%); border: 1px solid rgba(255, 235, 59, 0.3); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center justify-content-center"
+                style="width: 48px; height: 48px; background: linear-gradient(135deg, #FFEB3B 0%, #00BCD4 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(255, 235, 59, 0.4);">
+                <i class="fas fa-file-invoice" style="color: #fff; font-size: 1.4rem;"></i>
+            </div>
+            <div>
+                <h4 class="mb-0"
+                    style="font-weight: 700; color: #000; letter-spacing: 0.5px; font-size: 1.4rem; text-shadow: 0 2px 4px rgba(255, 255, 255, 0.5);">
+                    Avis d'Achat</h4>
+                <p class="mb-0" style="color: #000; font-weight: 500; font-size: 0.85rem; opacity: 0.8;">Gestion des
+                    avis d'achat sur bon de commande</p>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            {% if session.get('user_id') %}
+            {% set current_user = get_user_by_id(session.get('user_id')) %}
+            {% if current_user and current_user.role != 'user' %}
+            <a href="{{ url_for('add_avis_achat') }}" class="btn btn-primary d-flex align-items-center gap-2"
+                style="padding: 8px 16px; font-size: 0.9rem; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); transition: all 0.3s ease; text-decoration: none; white-space: nowrap;">
+                <i class="fas fa-plus" style="font-size: 0.95rem;"></i>
+                <span>Nouvel Avis d'Achat</span>
+            </a>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filtre par nature de prestation -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form autocomplete="off" method="GET" action="{{ url_for('avis_achats') }}" id="filterForm" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label"><i class="fas fa-filter me-2"></i>Filtrer par Nature de Prestation</label>
+                    <select name="nature" id="nature_principale" class="form-select">
+                        <option value="">Toutes les natures</option>
+                        <option value="Fournitures de bureaux et documentation" {{ 'selected' if
+                            nature_filter=='Fournitures de bureaux et documentation' }}>
+                            🖊️ Fournitures de bureaux et de documentation
+                        </option>
+                        <option value="Produits d'hygiène et de désinfection" {{ 'selected' if
+                            nature_filter=="Produits d'hygiène et de désinfection" }}>
+                            🧼 Produits d'hygiène et de désinfection
+                        </option>
+                        <option value="Fournitures pour le matériel informatique" {{ 'selected' if
+                            nature_filter=='Fournitures pour le matériel informatique' }}>
+                            💻 Fournitures pour le matériel informatique
+                        </option>
+                        <option value="Alimentation à usage Humaine" {{ 'selected' if
+                            nature_filter=='Alimentation à usage Humaine' }}>
+                            🍽️ Alimentation à usage Humaine
+                        </option>
+                        <option value="Entretien bâtiments administratifs" {{ 'selected' if nature_filter in ['Articles
+                            de plomberies', 'Articles électriques' , 'Articles de la peinture' ] }}>
+                            ▶ Entretien bâtiments administratifs (Sous-menu)
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-md-4" id="sous_prestation_filter" style="display: none;">
+                    <label class="form-label"><i class="fas fa-filter me-2"></i>Sous-prestation</label>
+                    <select name="nature" id="sous_prestation_select" class="form-select">
+                        <option value="">Toutes les sous-prestations</option>
+                        <option value="Articles de plomberies" {{ 'selected' if nature_filter=='Articles de plomberies'
+                            }}>
+                            🔧 Articles de plomberies
+                        </option>
+                        <option value="Articles électriques" {{ 'selected' if nature_filter=='Articles électriques' }}>
+                            ⚡ Articles électriques
+                        </option>
+                        <option value="Articles de la peinture" {{ 'selected' if
+                            nature_filter=='Articles de la peinture' }}>
+                            🎨 Articles de la peinture
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+                    {% if nature_filter or current_year %}
+                    <a href="{{ url_for('avis_achats') }}" class="btn btn-secondary me-2">
+                        <i class="fas fa-times me-2"></i>Réinitialiser
+                    </a>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Filtrer
+                    </button>
+                </div>
+            </form>
+
+            <!-- Sélecteur d'année -->
+            {% if years %}
+            {% if current_year %}
+            <!-- Navigation année précédente / suivante -->
+            <div class="d-flex align-items-center gap-2 mt-3 flex-wrap year-selector-nav">
+                {% if prev_year %}
+                <a href="{{ url_for('avis_achats', year=prev_year, nature=nature_filter) }}"
+                    class="btn btn-sm year-nav-btn">
+                    <i class="fas fa-chevron-left me-1"></i> {{ prev_year }}
+                </a>
+                {% endif %}
+                <span class="badge year-current-badge">
+                    {{ current_year }}
+                </span>
+                {% if next_year %}
+                <a href="{{ url_for('avis_achats', year=next_year, nature=nature_filter) }}"
+                    class="btn btn-sm year-nav-btn">
+                    {{ next_year }} <i class="fas fa-chevron-right ms-1"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Liste des années sous forme de pills -->
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-2 year-selector-container">
+                <span class="text-muted small me-1 year-selector-label">
+                    <i class="far fa-calendar-alt me-1"></i>Années :
+                </span>
+                <!-- Bouton Toutes les années -->
+                <a href="{{ url_for('avis_achats', nature=nature_filter) }}"
+                    class="btn btn-sm year-pill {% if not current_year %}year-pill--active{% endif %}">
+                    Toutes
+                </a>
+                {% for y in years %}
+                <a href="{{ url_for('avis_achats', year=y, nature=nature_filter) }}"
+                    class="btn btn-sm year-pill {% if current_year == y %}year-pill--active{% endif %}"
+                    title="Voir l'année {{ y }}">
+                    {{ y }}
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const naturePrincipale = document.getElementById('nature_principale');
+            const sousPrestationFilter = document.getElementById('sous_prestation_filter');
+            const sousPrestationSelect = document.getElementById('sous_prestation_select');
+
+            // Afficher le sous-menu si nécessaire au chargement
+            if (naturePrincipale.value === 'Entretien bâtiments administratifs') {
+                sousPrestationFilter.style.display = 'block';
+            }
+
+            naturePrincipale.addEventListener('change', function () {
+                const selectedValue = this.value;
+
+                if (selectedValue === 'Entretien bâtiments administratifs') {
+                    // Afficher le filtre de sous-prestation
+                    sousPrestationFilter.style.display = 'block';
+                    sousPrestationSelect.value = '';
+                    // Désactiver la soumission automatique
+                } else {
+                    // Masquer le filtre de sous-prestation
+                    sousPrestationFilter.style.display = 'none';
+                    // Soumettre le formulaire directement
+                    if (selectedValue !== '') {
+                        document.getElementById('filterForm').submit();
+                    }
+                }
+            });
+
+            sousPrestationSelect.addEventListener('change', function () {
+                // Soumettre le formulaire quand une sous-prestation est sélectionnée
+                if (this.value !== '') {
+                    document.getElementById('filterForm').submit();
+                }
+            });
+        });
+    </script>
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ avis_list.total }}</h3>
+                    <p class="mb-0">Total Avis</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-secondary">{{ avis_list.items|selectattr('statut', 'equalto',
+                        'brouillon')|list|length }}</h3>
+                    <p class="mb-0">Brouillons</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-success">{{ avis_list.items|selectattr('statut', 'equalto', 'publie')|list|length }}
+                    </h3>
+                    <p class="mb-0">Publiés</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-info">{{ avis_list.items|selectattr('statut', 'equalto', 'archive')|list|length }}
+                    </h3>
+                    <p class="mb-0">Archivés</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des avis d'achat -->
+    <div class="card">
+        <div class="card-header" style="display: flex; align-items: center; justify-content: center;">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Liste des Avis d'Achat</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if avis_list.items %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" style="width: 12%; font-size: 1rem;">Numéro</th>
+                            <th class="text-center" style="width: 22%; font-size: 1rem;">Nature de Prestation</th>
+                            <th class="text-center" style="width: 8%; font-size: 1rem;">Articles</th>
+                            <th class="text-center" style="width: 12%; white-space: nowrap; font-size: 1rem;">
+                                Date<br />Création</th>
+                            <th class="text-center" style="width: 10%; font-size: 1rem;">Statut</th>
+                            <th class="text-center" style="width: 15%; font-size: 1rem;">Créé par</th>
+                            <th class="text-center" style="width: 13%; font-size: 1rem;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for avis in avis_list.items %}
+                        <tr>
+                            <td class="text-center align-middle">
+                                <strong class="text-primary">{{ avis.numero_avis }}</strong>
+                            </td>
+                            <td class="text-center align-middle">
+                                <span class="badge bg-info text-wrap" style="max-width: 200px;">
+                                    {{ nature_icon(avis.nature_prestation) }}{{ avis.nature_prestation }}
+                                </span>
+                            </td>
+                            <td class="text-center align-middle">
+                                <span class="badge bg-secondary">{{ avis.items|length }}</span>
+                            </td>
+                            <td class="text-center align-middle" style="white-space: nowrap;">
+                                <small>{{ format_datetime(avis.date_creation, '%d/%m/%Y') }}<br />{{
+                                    format_datetime(avis.date_creation, '%H:%M') }}</small>
+                            </td>
+                            <td class="text-center align-middle">
+                                {% if avis.statut == 'brouillon' %}
+                                <span class="badge bg-secondary">Brouillon</span>
+                                {% elif avis.statut == 'publie' %}
+                                <span class="badge bg-success">Publié</span>
+                                {% elif avis.statut == 'archive' %}
+                                <span class="badge bg-info">Archivé</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center align-middle">
+                                <small>{{ avis.user.name if avis.user else 'Système' }}</small>
+                            </td>
+                            <td class="text-center align-middle">
+                                {% if session.get('user_id') %}
+                                {% set current_user = get_user_by_id(session.get('user_id')) %}
+                                {% if current_user and current_user.role != 'user' %}
+                                <!-- Boutons d'action (Admin et Gestionnaire uniquement) -->
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('generate_avis_achat_pdf', avis_id=avis.id) }}"
+                                        class="btn btn-outline-primary" title="Générer PDF">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
+                                    <a href="{{ url_for('edit_avis_achat', avis_id=avis.id) }}"
+                                        class="btn btn-outline-warning" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if avis.statut != 'publie' %}
+                                    <form autocomplete="off" method="POST"
+                                        action="{{ url_for('publish_avis_achat', avis_id=avis.id) }}"
+                                        style="display:inline;"
+                                        onsubmit="return confirm('Publier cet avis d\'achat ?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-outline-success" title="Publier">
+                                            <i class="fas fa-bullhorn"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <button type="button" class="btn btn-outline-success" title="Déjà publié" disabled>
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-outline-danger"
+                                        onclick="confirmDelete({{ avis.id }}, '{{ avis.numero_avis }}')"
+                                        title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                {% else %}
+                                <!-- Badge Consultation pour les utilisateurs simples -->
+                                <span class="badge"
+                                    style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.4); display: inline-flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.3px; border: 2px solid rgba(255, 255, 255, 0.3); white-space: nowrap;">
+                                    <i class="fas fa-eye" style="font-size: 1rem;"></i>
+                                    <span>Consultation</span>
+                                </span>
+                                {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if avis_list.pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if avis_list.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link"
+                            href="{{ url_for('avis_achats', page=avis_list.prev_num, nature=nature_filter) }}">
+                            <i class="fas fa-chevron-left"></i> Précédent
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in avis_list.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2)
+                    %}
+                    {% if page_num %}
+                    <li class="page-item {{ 'active' if page_num == avis_list.page }}">
+                        <a class="page-link" href="{{ url_for('avis_achats', page=page_num, nature=nature_filter) }}">{{
+                            page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if avis_list.has_next %}
+                    <li class="page-item">
+                        <a class="page-link"
+                            href="{{ url_for('avis_achats', page=avis_list.next_num, nature=nature_filter) }}">
+                            Suivant <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle me-2"></i>
+                Aucun avis d'achat trouvé.
+                <a href="{{ url_for('add_avis_achat') }}" class="alert-link">Créer le premier avis d'achat</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal de succès de création d'avis d'achat -->
+<div class="modal fade" id="successAvisCreateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 15px; position: fixed; z-index: 9999;">
+            <div class="modal-header"
+                style="background: rgba(0, 0, 0, 0.15); border: none; border-radius: 15px 15px 0 0;">
+                <h5 class="modal-title text-white" id="successAvisTitle">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Avis d'Achat Créé avec Succès
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-white text-center" style="padding: 30px;">
+                <i class="fas fa-file-invoice" style="font-size: 4rem; margin-bottom: 20px; opacity: 0.9;"></i>
+                <p class="mb-3" id="successAvisMessage">L'avis d'achat a été créé et enregistré avec succès</p>
+                <div class="alert alert-light mb-0">
+                    <div><i class="fas fa-hashtag me-2"></i><strong>Numéro</strong></div>
+                    <div class="fs-5" id="successAvisNumero"></div>
+                </div>
+            </div>
+            <div class="modal-footer"
+                style="background: rgba(0, 0, 0, 0.15); border: none; border-radius: 0 0 15px 15px;">
+                <a href="{{ url_for('avis_achats') }}" class="btn btn-light">
+                    <i class="fas fa-list me-2"></i>Voir la Liste
+                </a>
+                <a href="{{ url_for('add_avis_achat') }}" class="btn btn-warning">
+                    <i class="fas fa-plus me-2"></i>Nouveau
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="border-radius: 15px; box-shadow: 0 10px 40px rgba(220, 53, 69, 0.3); position: fixed; z-index: 9999;">
+            <div class="modal-header"
+                style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; border-radius: 15px 15px 0 0; position: relative; z-index: 9999;">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Confirmation de Suppression
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 25px;">
+                <p class="mb-3">Êtes-vous sûr de vouloir supprimer cet avis d'achat ?</p>
+                <div class="alert alert-warning mb-3">
+                    <i class="fas fa-file-invoice me-2"></i>
+                    <strong>Numéro :</strong> <span id="deleteAvisNumero"></span>
+                </div>
+                <div class="alert alert-danger mb-0">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Attention :</strong> Cette action est irréversible.
+                </div>
+            </div>
+            <div class="modal-footer" style="background: rgba(0, 0, 0, 0.02); border-radius: 0 0 15px 15px;">
+                <form autocomplete="off" id="deleteForm" method="POST" style="display: inline;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Annuler
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Succès de Suppression -->
+<div class="modal fade" id="successDeleteAvisModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="border-radius: 15px; box-shadow: 0 10px 40px rgba(40, 167, 69, 0.3); background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: #fff; position: fixed; z-index: 9999;">
+            <!-- En-tête -->
+            <div class="modal-header"
+                style="border-bottom: 2px solid rgba(255, 255, 255, 0.3); background: rgba(0, 0, 0, 0.15); padding: 20px 25px;">
+                <h4 class="modal-title w-100 text-center"
+                    style="font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+                    <i class="fas fa-check-circle me-2"
+                        style="font-size: 2.5rem; animation: iconPulse 2s ease-in-out infinite;"></i><br>
+                    Avis d'Achat Supprimé avec Succès
+                </h4>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+
+            <!-- Corps -->
+            <div class="modal-body text-center" style="padding: 25px;">
+                <p style="font-size: 1.1rem; margin-bottom: 20px;">
+                    L'avis d'achat a été supprimé définitivement du système
+                </p>
+
+                <!-- Badge Numéro -->
+                <div
+                    style="background: rgba(255, 255, 255, 0.2); border-radius: 10px; padding: 15px; margin-bottom: 15px; backdrop-filter: blur(10px);">
+                    <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 5px;">
+                        <i class="fas fa-file-invoice me-1"></i> NUMÉRO D'AVIS
+                    </div>
+                    <div style="font-size: 1.5rem; font-weight: 700; letter-spacing: 1px;" id="deletedAvisNum"></div>
+                </div>
+
+                <!-- Détails -->
+                <div style="background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 12px; font-size: 0.95rem;">
+                    <span id="deletedAvisDetails"></span>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer"
+                style="border-top: 2px solid rgba(255, 255, 255, 0.3); background: rgba(0, 0, 0, 0.15); justify-content: center; padding: 15px 25px;">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"
+                    style="padding: 10px 30px; font-weight: 600; border-radius: 8px; transition: all 0.2s;">
+                    <i class="fas fa-check me-2"></i>OK
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+{% if category == 'success' and 'Avis d\'achat supprimé' in message %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () {
+            const messageText = "{{ message|safe }}";
+            const parts = messageText.split('|');
+
+            // Extraction du numéro d'avis
+            if (parts.length > 1) {
+                const numero = parts[1].trim();
+                document.getElementById('deletedAvisNum').textContent = numero;
+            }
+
+            // Extraction des détails (Nature)
+            if (parts.length > 2) {
+                const details = parts.slice(2).join(' | ').trim();
+                document.getElementById('deletedAvisDetails').textContent = details;
+            }
+
+            // Afficher le modal
+            const modalElement = document.getElementById('successDeleteAvisModal');
+            const successModal = new bootstrap.Modal(modalElement, {
+                backdrop: 'static',
+                keyboard: true
+            });
+            successModal.show();
+
+            // Ajuster z-index
+            setTimeout(function () {
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.style.zIndex = '9998';
+                }
+                modalElement.style.zIndex = '9999';
+            }, 50);
+        }, 100);
+    });
+</script>
+{% elif category == 'success' and ("Avis d'achat créé" in message or "avis d'achat créés" in message) %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () {
+            const messageText = "{{ message|safe }}";
+
+            const numeroMatches = messageText.match(/\d{3}\/\d{4}\/PC/g);
+            const numeroElement = document.getElementById('successAvisNumero');
+            const titleElement = document.getElementById('successAvisTitle');
+            const messageElement = document.getElementById('successAvisMessage');
+
+            if (numeroElement) {
+                if (numeroMatches && numeroMatches.length > 0) {
+                    numeroElement.textContent = numeroMatches.join(' | ');
+                } else {
+                    numeroElement.textContent = 'Numéro généré';
+                }
+            }
+
+            if (titleElement && messageText.includes("avis d'achat créés")) {
+                titleElement.textContent = "Avis d'Achat Créés avec Succès";
+            }
+
+            if (messageElement && messageText) {
+                // Afficher le message brut (sans le premier symbole ✓) dans la phrase descriptive
+                const cleaned = messageText.startsWith('✓') ? messageText.substring(1).trim() : messageText.trim();
+                messageElement.textContent = cleaned;
+            }
+
+            const modalElement = document.getElementById('successAvisCreateModal');
+            if (modalElement && typeof bootstrap !== 'undefined') {
+                const successModal = new bootstrap.Modal(modalElement, {
+                    backdrop: 'static',
+                    keyboard: true
+                });
+                successModal.show();
+
+                setTimeout(function () {
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.style.zIndex = '9998';
+                    }
+                    modalElement.style.zIndex = '9999';
+                }, 50);
+            }
+        }, 100);
+    });
+</script>
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+<style>
+    /* Animation pour le modal de succès */
+    #successDeleteAvisModal .modal-content {
+        animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-50px) scale(0.9);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /* Animation de l'icône */
+    #successDeleteAvisModal .fa-check-circle {
+        animation: iconPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes iconPulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.1);
+        }
+    }
+
+    /* Effet hover sur les boutons */
+    #successDeleteAvisModal .modal-footer .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Backdrop avec flou */
+    .modal-backdrop.show {
+        backdrop-filter: blur(3px);
+    }
+
+    /* Styles pour la navigation par année */
+    .year-selector-container {
+        padding: 12px 16px;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.05) 100%);
+        border-radius: 12px;
+        border: 1px solid rgba(59, 130, 246, 0.1);
+    }
+
+    .year-selector-label {
+        font-weight: 600;
+        color: #64748b;
+        font-size: 0.85rem;
+    }
+
+    .year-pill {
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        background: white;
+        border: 2px solid #e2e8f0;
+        color: #475569;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .year-pill:hover {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border-color: #2563eb;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .year-pill--active {
+        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        border-color: #ea580c;
+        color: white;
+        box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+    }
+
+    .year-pill--active:hover {
+        background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+        border-color: #c2410c;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(249, 115, 22, 0.5);
+    }
+
+    .year-selector-nav {
+        padding: 10px 16px;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 10px;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .year-nav-btn {
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        background: white;
+        border: 2px solid #cbd5e1;
+        color: #475569;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+
+    .year-nav-btn:hover {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border-color: #059669;
+        color: white;
+        transform: translateX(0) scale(1.05);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .year-current-badge {
+        padding: 8px 20px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+</style>
+
+<script>
+    function confirmDelete(avisId, avisNumero) {
+        document.getElementById('deleteAvisNumero').textContent = avisNumero;
+        document.getElementById('deleteForm').action = '/avis-achats/' + avisId + '/delete';
+
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'), {
+            backdrop: 'static',
+            keyboard: true
+        });
+        deleteModal.show();
+
+        // Assurer le z-index correct
+        setTimeout(function () {
+            const backdrop = document.querySelector('.modal-backdrop');
+            const modalElement = document.getElementById('deleteModal');
+            if (backdrop) backdrop.style.zIndex = '9998';
+            if (modalElement) modalElement.style.zIndex = '9999';
+        }, 50);
+    }
+</script>
+
+{% endblock %}

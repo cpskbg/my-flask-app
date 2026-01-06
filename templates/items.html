@@ -1,0 +1,1219 @@
+{% extends "base.html" %}
+
+{% block title %}Articles - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% import "macros/nature_icons.html" as nature_macros %}
+
+{% block content %}
+<script>window.suppressSuccessToast = true;</script>
+<div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded-3"
+    style="background: linear-gradient(135deg, rgba(255, 235, 59, 0.15) 0%, rgba(0, 188, 212, 0.15) 100%); border: 1px solid rgba(255, 235, 59, 0.3); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center"
+            style="width: 48px; height: 48px; background: linear-gradient(135deg, #FFEB3B 0%, #00BCD4 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(255, 235, 59, 0.4);">
+            <i class="fas fa-box" style="color: #fff; font-size: 1.4rem;"></i>
+        </div>
+        <h4 class="mb-0"
+            style="font-weight: 700; color: #000; letter-spacing: 0.5px; font-size: 1.4rem; text-shadow: 0 2px 4px rgba(255, 255, 255, 0.5);">
+            Articles</h4>
+    </div>
+    <div class="d-flex gap-2">
+        {% if session.get('user_id') %}
+        {% set current_user = get_user_by_id(session.get('user_id')) %}
+        {% if current_user and current_user.role != 'user' %}
+        <!-- Boutons de modification (Admin et Gestionnaire uniquement) -->
+        <button id="deleteMultipleBtn" class="btn btn-danger btn-sm" style="display: none;"
+            onclick="confirmDeleteMultiple()">
+            <i class="fas fa-trash-alt me-1"></i>Supprimer (<span id="selectedCount">0</span>)
+        </button>
+        <a href="{{ url_for('import_items') }}" class="btn btn-info btn-sm" title="Importer depuis Excel">
+            <i class="fas fa-file-import me-1"></i>Importer Excel
+        </a>
+        {% endif %}
+        {% endif %}
+        <!-- Export Excel visible pour tous -->
+        <a href="{{ url_for('export_stock_excel') }}" class="btn btn-success btn-sm">
+            <i class="fas fa-file-excel me-1"></i>Export Excel
+        </a>
+        {% if session.get('user_id') %}
+        {% set current_user = get_user_by_id(session.get('user_id')) %}
+        {% if current_user and current_user.role != 'user' %}
+        <!-- Bouton Ajouter (Admin et Gestionnaire uniquement) -->
+        <a href="{{ url_for('add_item') }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-1"></i>Ajouter
+        </a>
+        <form autocomplete="off" method="POST" action="{{ url_for('reset_all_quantities') }}" style="margin:0;"
+            onsubmit="return confirm('Cette action réinitialise TOUTES les quantités à 0. Confirmer ?');">
+            <button type="submit" class="btn btn-outline-warning btn-sm"
+                title="Réinitialiser toutes les quantités à zéro">
+                <i class="fas fa-undo me-1"></i>Réinitialiser stock
+            </button>
+        </form>
+        <button type="button" class="btn btn-outline-info btn-sm" title="Nettoyer les doublons d\'articles"
+            onclick="openCleanupDuplicatesModal()">
+            <i class="fas fa-broom me-1"></i>Nettoyer doublons
+        </button>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Search and Filter -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <form autocomplete="off" method="GET" class="row g-2">
+            <!-- Recherche par texte -->
+            <div class="col-md-5">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-primary text-white">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" name="search" placeholder="Rechercher par nom, SKU..."
+                        value="{{ search }}">
+                </div>
+            </div>
+
+            <!-- Filtre par Nature de prestation -->
+            <div class="col-md-5">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-info text-white">
+                        <i class="fas fa-filter"></i>
+                    </span>
+                    <select class="form-select" name="category" onchange="this.form.submit()">
+                        <option value="">Toutes les natures de prestation</option>
+                        {% for nature in all_budget_natures %}
+                        <option value="{{ nature }}" {{ 'selected' if category_filter==nature }}>
+                            {{ nature }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Boutons -->
+            <div class="col-md-2">
+                <div class="d-flex gap-1">
+                    <button type="submit" class="btn btn-primary btn-sm flex-fill">
+                        <i class="fas fa-search me-1"></i>Filtrer
+                    </button>
+                    <a href="{{ url_for('items') }}" class="btn btn-secondary btn-sm" title="Réinitialiser">
+                        <i class="fas fa-redo"></i>
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Indicateur de filtre actif supprimé -->
+
+<!-- Items Table -->
+<div class="card">
+    <div class="card-body">
+        {% if items.items %}
+        <div class="table-responsive" style="overflow-x: hidden;">
+            <table class="table table-hover" style="table-layout: fixed; width: 100%;">
+                <thead>
+                    <tr>
+                        {% if session.get('user_id') %}
+                        {% set current_user = get_user_by_id(session.get('user_id')) %}
+                        {% if current_user and current_user.role != 'user' %}
+                        <th style="text-align: center; vertical-align: middle; width: 3%;">
+                            <input type="checkbox" id="selectAll" class="form-check-input" style="cursor: pointer;"
+                                onchange="toggleSelectAll(this)">
+                        </th>
+                        {% endif %}
+                        {% endif %}
+                        <th
+                            style="text-align: center; vertical-align: middle; width: 7%; white-space: nowrap; font-size: 0.81rem;">
+                            SKU</th>
+                        <th
+                            style="text-align: center; vertical-align: middle; width: 25%; white-space: nowrap; font-size: 1rem;">
+                            NOM</th>
+                        <th
+                            style="text-align: center; vertical-align: middle; width: 25%; white-space: nowrap; font-size: 1rem;">
+                            NATURE DE PRESTATION</th>
+                        <th
+                            style="text-align: center; vertical-align: middle; width: 10%; white-space: nowrap; font-size: 1rem;">
+                            UNITÉ</th>
+                        <th
+                            style="text-align: center; vertical-align: middle; width: 10%; font-size: 1rem; line-height: 1.2; padding: 4px 2px;">
+                            SEUIL DE<br>COMMANDE</th>
+                        <th
+                            style="text-align: center; vertical-align: middle; width: 10%; white-space: nowrap; font-size: 1rem;">
+                            STATUT</th>
+                        <th
+                            style="text-align: center; vertical-align: middle; width: 18%; white-space: nowrap; font-size: 1rem;">
+                            ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items.items %}
+                    <tr data-item-id="{{ item.id }}" class="item-row">
+                        {% if session.get('user_id') %}
+                        {% set current_user = get_user_by_id(session.get('user_id')) %}
+                        {% if current_user and current_user.role != 'user' %}
+                        <td style="text-align: center; vertical-align: middle;">
+                            <input type="checkbox" class="form-check-input item-checkbox" value="{{ item.id }}"
+                                data-sku="{{ item.sku }}" data-name="{{ item.name }}" style="cursor: pointer;"
+                                onchange="updateDeleteButton()">
+                        </td>
+                        {% endif %}
+                        {% endif %}
+                        <td
+                            style="text-align: center; vertical-align: middle; font-size: 0.75rem; white-space: nowrap;">
+                            <span>{{ item.sku or 'N/A' }}</span>
+                        </td>
+                        <td style="vertical-align: middle;">
+                            <span style="display: block;">{{ item.name }}</span>
+                            {% if item.description %}
+                            <small class="text-muted" style="display: block;">{{ item.description[:40] }}{% if
+                                item.description|length > 40 %}...{% endif %}</small>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center; vertical-align: middle;">
+                            <div class="d-flex align-items-center justify-content-center">
+                                {% if item.category %}
+                                {{ nature_macros.icon(item.category) }}
+                                <strong>{{ item.category }}</strong>
+                                {% else %}
+                                <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td style="text-align: center; vertical-align: middle;">
+                            <span>{{ item.unit }}</span>
+                        </td>
+                        <td style="text-align: center; vertical-align: middle;">
+                            <span>{{ item.reorder_level }}</span>
+                        </td>
+                        <td style="text-align: center; vertical-align: middle;">
+                            {% if item.quantity <= item.reorder_level %} <span class="badge bg-warning">Stock Bas</span>
+                                {% elif item.quantity == 0 %}
+                                <span class="badge bg-danger">Rupture</span>
+                                {% else %}
+                                <span class="badge bg-success">En Stock</span>
+                                {% endif %}
+                        </td>
+                        <td style="text-align: center; vertical-align: middle;">
+                            {% if session.get('user_id') %}
+                            {% set current_user = get_user_by_id(session.get('user_id')) %}
+                            {% if current_user and current_user.role != 'user' %}
+                            <!-- Boutons d'action (Admin et Gestionnaire uniquement) -->
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('edit_item', item_id=item.id) }}" class="btn btn-outline-secondary"
+                                    title="Modifier">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-danger" title="Supprimer"
+                                    onclick="confirmDelete('{{ item.id }}', '{{ item.sku }}', '{{ item.name }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            {% else %}
+                            <!-- Badge Consultation pour les utilisateurs simples -->
+                            <span class="badge"
+                                style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.4); display: inline-flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.3px; border: 2px solid rgba(255, 255, 255, 0.3); white-space: nowrap;">
+                                <i class="fas fa-eye" style="font-size: 1rem;"></i>
+                                <span>Consultation</span>
+                            </span>
+                            {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if items.pages > 1 %}
+        <nav aria-label="Items pagination">
+            <ul class="pagination justify-content-center">
+                {% if items.has_prev %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('items', page=items.prev_num, search=search, category=category_filter) }}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for page_num in items.iter_pages() %}
+                {% if page_num %}
+                {% if page_num != items.page %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('items', page=page_num, search=search, category=category_filter) }}">{{
+                        page_num }}</a>
+                </li>
+                {% else %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_num }}</span>
+                </li>
+                {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if items.has_next %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('items', page=items.next_num, search=search, category=category_filter) }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-box-open fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">Aucun article trouvé</h4>
+            <p class="text-muted">{% if search %}Aucun article ne correspond à votre recherche.{% else %}Commencez par
+                ajouter votre premier article.{% endif %}</p>
+            <a href="{{ url_for('add_item') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Ajouter le Premier Article
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteItemModal" tabindex="-1" aria-labelledby="deleteItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); border-radius: 12px; box-shadow: 0 10px 40px rgba(220, 53, 69, 0.4); border: none; overflow: hidden;">
+            <!-- En-tête -->
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                <h5
+                    style="color: #fff; font-size: 0.95rem; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>Confirmation de Suppression
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+
+            <!-- Corps -->
+            <div style="padding: 20px 25px; color: #fff;">
+                <div
+                    style="text-align: center; margin-bottom: 15px; font-size: 0.95rem; line-height: 1.5; font-weight: 500;">
+                    <div>Êtes-vous sûr de vouloir supprimer</div>
+                    <div>cet article du système ?</div>
+                </div>
+
+                <!-- Informations de l'article -->
+                <div
+                    style="background: rgba(255, 255, 255, 0.15); padding: 10px 15px; border-radius: 6px; margin-bottom: 15px; border: 1px solid rgba(255, 255, 255, 0.25);">
+                    <div style="font-size: 0.85rem; margin-bottom: 5px; opacity: 0.9;">
+                        <i class="fas fa-box" style="margin-right: 5px;"></i>SKU
+                    </div>
+                    <div style="font-size: 1rem; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 10px;"
+                        id="deleteItemSKU"></div>
+                    <div style="font-size: 0.85rem; opacity: 0.9;">
+                        <i class="fas fa-tag" style="margin-right: 5px;"></i>Nom
+                    </div>
+                    <div style="font-size: 0.95rem; font-weight: 600;" id="deleteItemName"></div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"
+                    style="flex: 1; padding: 8px 20px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; background: rgba(255, 255, 255, 0.95); border: none; color: #000; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-times me-1"></i>Annuler
+                </button>
+                <form autocomplete="off" id="deleteItemForm" method="POST" style="flex: 1; margin: 0;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger"
+                        style="width: 100%; padding: 8px 20px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; background: rgba(255, 255, 255, 0.2); border: 2px solid #fff; color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fas fa-trash me-1"></i>Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmation de suppression multiple -->
+<div class="modal fade" id="deleteMultipleModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); border-radius: 12px; box-shadow: 0 10px 40px rgba(220, 53, 69, 0.4); border: none;">
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2);">
+                <h5 style="color: #fff; font-weight: 700; margin: 0;">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirmer la Suppression Multiple
+                </h5>
+            </div>
+            <div style="padding: 20px 25px; color: #fff;">
+                <p style="font-size: 1rem; margin-bottom: 15px;">
+                    Vous êtes sur le point de supprimer <strong id="deleteMultipleCount">0</strong> article(s).
+                </p>
+                <div id="deleteMultipleList"
+                    style="max-height: 200px; overflow-y: auto; background: rgba(0, 0, 0, 0.2); padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+                    <!-- Liste des articles à supprimer -->
+                </div>
+            </div>
+            <div style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; display: flex; gap: 10px;">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="flex: 1;">
+                    <i class="fas fa-times me-1"></i>Annuler
+                </button>
+                <button type="button" class="btn btn-danger" onclick="executeDeleteMultiple()"
+                    style="flex: 1; background: rgba(255, 255, 255, 0.2); border: 2px solid #fff;">
+                    <i class="fas fa-trash me-1"></i>Supprimer Tout
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Fonction pour supprimer un seul article
+    function confirmDelete(itemId, itemSku, itemName) {
+        document.getElementById('deleteItemSKU').textContent = itemSku;
+        document.getElementById('deleteItemName').textContent = itemName;
+        document.getElementById('deleteItemForm').action = '/delete-item/' + itemId;
+
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteItemModal'), {
+            backdrop: 'static',
+            keyboard: true
+        });
+        deleteModal.show();
+
+        setTimeout(function () {
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                backdrop.style.zIndex = '9998';
+            }
+            document.getElementById('deleteItemModal').style.zIndex = '9999';
+        }, 50);
+    }
+
+    // Clé pour le localStorage
+    const STORAGE_KEY = 'selected_items';
+
+    // Charger les sélections depuis localStorage
+    function loadSelectedItems() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return stored ? JSON.parse(stored) : [];
+    }
+
+    // Sauvegarder les sélections dans localStorage
+    function saveSelectedItems(selectedIds) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedIds));
+    }
+
+    // Obtenir tous les IDs sélectionnés (toutes pages confondues)
+    function getAllSelectedIds() {
+        const stored = loadSelectedItems();
+        const currentChecked = Array.from(document.querySelectorAll('.item-checkbox:checked')).map(cb => cb.value);
+        const currentUnchecked = Array.from(document.querySelectorAll('.item-checkbox:not(:checked)')).map(cb => cb.value);
+
+        // Retirer les éléments décochés de la page actuelle
+        let allSelected = stored.filter(id => !currentUnchecked.includes(id));
+
+        // Ajouter les éléments cochés de la page actuelle
+        currentChecked.forEach(id => {
+            if (!allSelected.includes(id)) {
+                allSelected.push(id);
+            }
+        });
+
+        return allSelected;
+    }
+
+    // Fonction pour tout sélectionner/désélectionner
+    function toggleSelectAll(checkbox) {
+        const itemCheckboxes = document.querySelectorAll('.item-checkbox');
+        itemCheckboxes.forEach(cb => {
+            cb.checked = checkbox.checked;
+        });
+        updateDeleteButton();
+    }
+
+    // Fonction pour mettre à jour le bouton de suppression
+    function updateDeleteButton() {
+        // Sauvegarder la sélection actuelle
+        const allSelectedIds = getAllSelectedIds();
+        saveSelectedItems(allSelectedIds);
+
+        const deleteBtn = document.getElementById('deleteMultipleBtn');
+        const countSpan = document.getElementById('selectedCount');
+        const selectAllCheckbox = document.getElementById('selectAll');
+
+        // Afficher le nombre total d'articles sélectionnés (toutes pages)
+        countSpan.textContent = allSelectedIds.length;
+
+        if (allSelectedIds.length > 0) {
+            deleteBtn.style.display = 'inline-block';
+        } else {
+            deleteBtn.style.display = 'none';
+        }
+
+        // Mettre à jour l'état de "Tout sélectionner" (uniquement pour la page actuelle)
+        const allCheckboxes = document.querySelectorAll('.item-checkbox');
+        const checkedBoxes = document.querySelectorAll('.item-checkbox:checked');
+        selectAllCheckbox.checked = allCheckboxes.length > 0 && checkedBoxes.length === allCheckboxes.length;
+    }
+
+    // Restaurer les sélections au chargement de la page
+    function restoreSelections() {
+        const selectedIds = loadSelectedItems();
+        const itemCheckboxes = document.querySelectorAll('.item-checkbox');
+
+        itemCheckboxes.forEach(cb => {
+            if (selectedIds.includes(cb.value)) {
+                cb.checked = true;
+            }
+        });
+
+        updateDeleteButton();
+    }
+
+    // Fonction pour confirmer la suppression multiple
+    function confirmDeleteMultiple() {
+        const allSelectedIds = getAllSelectedIds();
+
+        if (allSelectedIds.length === 0) {
+            alert('Veuillez sélectionner au moins un article à supprimer.');
+            return;
+        }
+
+        // Mettre à jour le compteur
+        document.getElementById('deleteMultipleCount').textContent = allSelectedIds.length;
+
+        // Créer la liste des articles (page actuelle + stockés)
+        const listContainer = document.getElementById('deleteMultipleList');
+        listContainer.innerHTML = '';
+
+        // Afficher les articles de la page actuelle
+        const checkedBoxes = document.querySelectorAll('.item-checkbox:checked');
+        checkedBoxes.forEach(checkbox => {
+            const sku = checkbox.getAttribute('data-sku');
+            const name = checkbox.getAttribute('data-name');
+            const itemDiv = document.createElement('div');
+            itemDiv.style.cssText = 'padding: 8px; margin-bottom: 5px; background: rgba(255, 255, 255, 0.1); border-radius: 4px; display: flex; align-items: center; gap: 10px;';
+            itemDiv.innerHTML = `
+            <i class="fas fa-box" style="color: rgba(255, 255, 255, 0.7);"></i>
+            <div style="flex: 1;">
+                <strong>${sku}</strong> - ${name}
+            </div>
+        `;
+            listContainer.appendChild(itemDiv);
+        });
+
+        // Afficher un message pour les articles des autres pages
+        const currentPageIds = Array.from(document.querySelectorAll('.item-checkbox')).map(cb => cb.value);
+        const otherPagesCount = allSelectedIds.filter(id => !currentPageIds.includes(id)).length;
+
+        if (otherPagesCount > 0) {
+            const otherPagesDiv = document.createElement('div');
+            otherPagesDiv.style.cssText = 'padding: 8px; margin-top: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; border-left: 3px solid rgba(255, 255, 255, 0.3);';
+            otherPagesDiv.innerHTML = `
+            <i class="fas fa-info-circle" style="color: rgba(255, 255, 255, 0.7);"></i>
+            <span style="margin-left: 8px;">+ ${otherPagesCount} article(s) sélectionné(s) sur d'autres pages</span>
+        `;
+            listContainer.appendChild(otherPagesDiv);
+        }
+
+        // Afficher le modal
+        const modal = new bootstrap.Modal(document.getElementById('deleteMultipleModal'), {
+            backdrop: 'static',
+            keyboard: true
+        });
+        modal.show();
+
+        setTimeout(function () {
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                backdrop.style.zIndex = '9998';
+            }
+            document.getElementById('deleteMultipleModal').style.zIndex = '9999';
+        }, 50);
+    }
+
+    // Fonction pour exécuter la suppression multiple
+    function executeDeleteMultiple() {
+        const allSelectedIds = getAllSelectedIds();
+
+        if (allSelectedIds.length === 0) {
+            return;
+        }
+
+        // Créer un formulaire pour envoyer TOUS les IDs (toutes pages)
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/delete-items-multiple';
+
+        // CSRF token
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta && meta.content) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = meta.content;
+            form.appendChild(csrfInput);
+        }
+
+        allSelectedIds.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'item_ids';
+            input.value = id;
+            form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+
+        // Nettoyer le localStorage après la suppression
+        localStorage.removeItem(STORAGE_KEY);
+
+        form.submit();
+    }
+
+    function openCleanupDuplicatesModal() {
+        const modalElement = document.getElementById('cleanupDuplicatesModal');
+        if (modalElement && typeof bootstrap !== 'undefined') {
+            const modal = new bootstrap.Modal(modalElement, {
+                backdrop: 'static',
+                keyboard: false
+            });
+            modal.show();
+        } else {
+            cleanupItemDuplicates();
+        }
+    }
+
+    function cleanupItemDuplicates() {
+        const confirmBtn = document.getElementById('cleanupDuplicatesConfirmBtn');
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+        }
+
+        fetch('/admin/items/duplicates/cleanup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                strategy: 'keep_oldest',
+                confirm: true,
+                dry_run: false
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.success) {
+                    const msg = `Nettoyage des doublons terminé. Groupes traités: ${data.groups_processed || 0}. ` +
+                        `Articles fusionnés: ${data.items_merged || 0}, supprimés: ${data.items_deleted || 0}.`;
+                    alert(msg + '\n\nLes SKU ont été réorganisés pour rester séquentiels.');
+                    window.location.reload();
+                } else {
+                    alert('Erreur lors du nettoyage des doublons d\'articles.');
+                }
+            })
+            .catch(err => {
+                console.error('Erreur nettoyage doublons:', err);
+                alert('Erreur technique lors du nettoyage des doublons.');
+            })
+            .finally(() => {
+                const modalElement = document.getElementById('cleanupDuplicatesModal');
+                if (modalElement && typeof bootstrap !== 'undefined') {
+                    const instance = bootstrap.Modal.getInstance(modalElement);
+                    if (instance) {
+                        instance.hide();
+                    }
+                }
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                }
+            });
+    }
+
+    // Initialisation au chargement de la page
+    document.addEventListener('DOMContentLoaded', function () {
+        restoreSelections();
+
+        try {
+            const url = new URL(window.location.href);
+            const params = url.searchParams;
+            const op = params.get('op');
+
+            if (!op) {
+                return;
+            }
+
+            // Article créé avec succès
+            if (op === 'item_created') {
+                const sku = params.get('sku') || 'Nouvel article';
+                const name = params.get('name') || '';
+                const category = params.get('category') || '';
+
+                const skuElement = document.getElementById('successSKU');
+                const detailsElement = document.getElementById('successItemDetails');
+                const modalElement = document.getElementById('successItemModal');
+
+                if (skuElement) {
+                    skuElement.textContent = sku;
+                }
+
+                if (detailsElement) {
+                    const parts = [];
+                    if (name) {
+                        parts.push(`Nom: ${name}`);
+                    }
+                    if (category) {
+                        parts.push(`Nature de prestation: ${category}`);
+                    }
+                    detailsElement.textContent = parts.join(' | ') || 'Article enregistré';
+                }
+
+                if (modalElement && typeof bootstrap !== 'undefined') {
+                    const successModal = new bootstrap.Modal(modalElement, {
+                        backdrop: 'static',
+                        keyboard: true
+                    });
+                    successModal.show();
+
+                    setTimeout(function () {
+                        const backdrop = document.querySelector('.modal-backdrop');
+                        if (backdrop) {
+                            backdrop.style.zIndex = '9998';
+                        }
+                        modalElement.style.zIndex = '9999';
+                        modalElement.style.display = 'block';
+                    }, 50);
+                }
+            }
+
+            // Article supprimé avec succès (suppression simple)
+            if (op === 'item_deleted') {
+                const skuDeleted = params.get('sku') || 'Article supprimé';
+                const nameDeleted = params.get('name') || '';
+
+                const skuElement = document.getElementById('deletedSKU');
+                const detailsElement = document.getElementById('deletedItemDetails');
+                const modalElement = document.getElementById('successDeleteModal');
+
+                if (skuElement) {
+                    skuElement.textContent = skuDeleted;
+                }
+
+                if (detailsElement) {
+                    const parts = [];
+                    if (nameDeleted) {
+                        parts.push(`Nom: ${nameDeleted}`);
+                    }
+                    detailsElement.textContent = parts.join(' | ') || 'Article supprimé du système';
+                }
+
+                if (modalElement && typeof bootstrap !== 'undefined') {
+                    const successModal = new bootstrap.Modal(modalElement, {
+                        backdrop: 'static',
+                        keyboard: true
+                    });
+                    successModal.show();
+
+                    setTimeout(function () {
+                        const backdrop = document.querySelector('.modal-backdrop');
+                        if (backdrop) {
+                            backdrop.style.zIndex = '9998';
+                        }
+                        modalElement.style.zIndex = '9999';
+                        modalElement.style.display = 'block';
+                    }, 50);
+                }
+            }
+
+            // Réinitialisation des quantités (optionnel: simple notification)
+            if (op === 'reset_quantities') {
+                // Ici on peut juste afficher une alerte simple pour l'instant
+                // ou plus tard ajouter un modal dédié si nécessaire.
+                console.info('Toutes les quantités ont été réinitialisées à 0.');
+            }
+
+            // Nettoyer les paramètres de l'URL après utilisation (sans recharger la page)
+            params.delete('op');
+            params.delete('sku');
+            params.delete('name');
+            params.delete('category');
+            const newUrl = url.pathname + (params.toString() ? `?${params.toString()}` : '') + url.hash;
+            window.history.replaceState({}, '', newUrl);
+        } catch (e) {
+            console.error('Erreur lors du traitement des paramètres de succès:', e);
+        }
+    });
+</script>
+
+<div class="modal fade" id="cleanupDuplicatesModal" tabindex="-1" aria-labelledby="cleanupDuplicatesModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cleanupDuplicatesModalLabel">
+                    <i class="fas fa-broom me-2"></i>Nettoyer les doublons d'articles
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">
+                    Cette opération va fusionner automatiquement les articles en doublon (même nom ou même SKU
+                    normalisé).
+                </p>
+                <p class="mb-2">
+                    Les réceptions, dotations, stocks et avis d'achat seront rattachés à l'article conservé et les
+                    quantités seront additionnées.
+                </p>
+                <p class="mb-0 fw-bold text-danger">
+                    Cette action est irréversible. Confirmer le nettoyage ?
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="cleanupDuplicatesConfirmBtn"
+                    onclick="cleanupItemDuplicates()">
+                    <i class="fas fa-check me-1"></i>Confirmer le nettoyage
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de succès de suppression d'article -->
+<div class="modal fade" id="successDeleteModal" tabindex="-1" aria-labelledby="successDeleteModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 12px; box-shadow: 0 10px 40px rgba(40, 167, 69, 0.4); border: none; overflow: hidden;">
+            <!-- En-tête -->
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                <h5
+                    style="color: #fff; font-size: 0.95rem; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-check-circle" style="margin-right: 8px;"></i>Article Supprimé avec Succès
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+
+            <!-- Corps compact -->
+            <div style="padding: 20px 25px 15px 25px; color: #fff;">
+                <!-- Message de succès -->
+                <div
+                    style="text-align: center; margin-bottom: 12px; font-size: 0.95rem; line-height: 1.5; font-weight: 500;">
+                    <div>L'article a été supprimé définitivement</div>
+                    <div>du système avec succès</div>
+                </div>
+
+                <!-- Informations de l'article -->
+                <div
+                    style="background: rgba(255, 255, 255, 0.15); padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.25);">
+                    <div style="font-size: 0.8rem; margin-bottom: 3px; opacity: 0.9;">
+                        <i class="fas fa-box" style="margin-right: 5px;"></i>SKU
+                    </div>
+                    <div style="font-size: 1rem; font-weight: 700; letter-spacing: 0.5px;" id="deletedSKU"></div>
+                </div>
+
+                <!-- Détails compacts -->
+                <div
+                    style="background: rgba(0, 0, 0, 0.2); padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; line-height: 1.4; text-align: center; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <div><i class="fas fa-info-circle" style="margin-right: 5px;"></i><span
+                            id="deletedItemDetails"></span></div>
+                </div>
+            </div>
+
+            <!-- Footer compact avec bouton -->
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; display: flex; justify-content: center; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"
+                    style="padding: 8px 30px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; background: rgba(255, 255, 255, 0.95); border: none; color: #000; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-check me-1"></i>OK
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de succès de suppression multiple -->
+<div class="modal fade" id="successDeleteMultipleModal" tabindex="-1" aria-labelledby="successDeleteMultipleModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 12px; box-shadow: 0 10px 40px rgba(40, 167, 69, 0.4); border: none; overflow: hidden;">
+            <!-- En-tête -->
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                <h5
+                    style="color: #fff; font-size: 0.95rem; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-check-circle" style="margin-right: 8px;"></i>Suppression Multiple Réussie
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+
+            <!-- Corps compact -->
+            <div style="padding: 20px 25px 15px 25px; color: #fff;">
+                <!-- Message de succès -->
+                <div
+                    style="text-align: center; margin-bottom: 12px; font-size: 0.95rem; line-height: 1.5; font-weight: 500;">
+                    <div>Les articles ont été supprimés</div>
+                    <div>définitivement du système avec succès</div>
+                </div>
+
+                <!-- Badge du nombre d'articles -->
+                <div
+                    style="background: rgba(255, 255, 255, 0.15); padding: 12px 15px; border-radius: 6px; margin-bottom: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.25);">
+                    <div style="font-size: 0.8rem; margin-bottom: 5px; opacity: 0.9;">
+                        <i class="fas fa-trash-alt" style="margin-right: 5px;"></i>ARTICLES SUPPRIMÉS
+                    </div>
+                    <div style="font-size: 2rem; font-weight: 700; letter-spacing: 1px;" id="deletedMultipleCount">
+                    </div>
+                </div>
+
+                <!-- Message informatif -->
+                <div
+                    style="background: rgba(0, 0, 0, 0.2); padding: 10px 12px; border-radius: 6px; font-size: 0.85rem; line-height: 1.5; text-align: center; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <i class="fas fa-info-circle" style="margin-right: 5px;"></i>
+                    <span>Tous les articles sélectionnés ont été supprimés ainsi que leurs dépendances (dotations et
+                        réceptions)</span>
+                </div>
+            </div>
+
+            <!-- Footer compact avec bouton -->
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; display: flex; justify-content: center; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"
+                    style="padding: 8px 30px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; background: rgba(255, 255, 255, 0.95); border: none; color: #000; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-check me-1"></i>OK
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de succès de création d'article -->
+<div class="modal fade" id="successItemModal" tabindex="-1" aria-labelledby="successItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); border-radius: 12px; box-shadow: 0 10px 40px rgba(13, 110, 253, 0.4); border: none; overflow: hidden;">
+            <!-- En-tête -->
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                <h5
+                    style="color: #fff; font-size: 0.95rem; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-check-circle" style="margin-right: 8px;"></i>Article Créé avec Succès
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+
+            <!-- Corps compact -->
+            <div style="padding: 20px 25px 15px 25px; color: #fff;">
+                <!-- Message de succès -->
+                <div
+                    style="text-align: center; margin-bottom: 12px; font-size: 0.95rem; line-height: 1.5; font-weight: 500;">
+                    <div>L'article a été créé et enregistré</div>
+                    <div>avec succès dans le système</div>
+                </div>
+
+                <!-- Informations de l'article -->
+                <div
+                    style="background: rgba(255, 255, 255, 0.15); padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.25);">
+                    <div style="font-size: 0.8rem; margin-bottom: 3px; opacity: 0.9;">
+                        <i class="fas fa-box" style="margin-right: 5px;"></i>SKU
+                    </div>
+                    <div style="font-size: 1rem; font-weight: 700; letter-spacing: 0.5px;" id="successSKU"></div>
+                </div>
+
+                <!-- Détails compacts -->
+                <div
+                    style="background: rgba(0, 0, 0, 0.2); padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; line-height: 1.4; text-align: center; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <div><i class="fas fa-info-circle" style="margin-right: 5px;"></i><span
+                            id="successItemDetails"></span></div>
+                </div>
+            </div>
+
+            <!-- Footer compact avec boutons -->
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"
+                    style="flex: 1; padding: 8px 20px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; background: rgba(255, 255, 255, 0.95); border: none; color: #000; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-check me-1"></i>OK
+                </button>
+                <a href="{{ url_for('add_item') }}" class="btn btn-warning"
+                    style="flex: 1; padding: 8px 20px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; background: #ffc107; border: none; color: #000; box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4); text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; text-align: center;">
+                    <i class="fas fa-plus me-1"></i>Nouveau
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+{% if category == 'success' and 'Article créé' in message %}
+<script>
+    // Afficher le modal de succès de création d'article
+    document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () {
+            const messageText = '{{ message|safe }}';
+            const parts = messageText.split('|');
+
+            const skuMatch = messageText.match(/ART-\d{4}-\d{3}/);
+            if (skuMatch) {
+                document.getElementById('successSKU').textContent = skuMatch[0];
+            } else {
+                document.getElementById('successSKU').textContent = 'Nouvel article';
+            }
+
+            if (parts.length > 1) {
+                const details = parts.slice(1).join(' | ').trim();
+                document.getElementById('successItemDetails').textContent = details;
+            } else {
+                document.getElementById('successItemDetails').textContent = 'Article enregistré';
+            }
+
+            const modalElement = document.getElementById('successItemModal');
+            if (modalElement && typeof bootstrap !== 'undefined') {
+                const successModal = new bootstrap.Modal(modalElement, {
+                    backdrop: 'static',
+                    keyboard: true
+                });
+
+                successModal.show();
+
+                setTimeout(function () {
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                        backdrop.style.zIndex = '9998';
+                    }
+                    modalElement.style.zIndex = '9999';
+                    modalElement.style.display = 'block';
+                }, 50);
+            }
+        }, 100);
+    });
+</script>
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+<style>
+    /* Animation pour les modaux de succès */
+    #successItemModal .modal-content,
+    #successDeleteModal .modal-content {
+        animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-50px) scale(0.9);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /* Effet hover sur les boutons */
+    #successItemModal .btn-light:hover,
+    #successDeleteModal .btn-light:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    #successItemModal .btn-warning:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(255, 193, 7, 0.5);
+    }
+
+    /* Animation de l'icône */
+    #successItemModal .fa-check-circle,
+    #successDeleteModal .fa-check-circle {
+        animation: iconPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes iconPulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.1);
+        }
+    }
+</style>
+
+<!-- Modal de confirmation de suppression TOTALE des articles -->
+<div class="modal fade" id="deleteAllItemsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="background: linear-gradient(135deg, #dc3545 0%, #991b1b 100%); border-radius: 15px; box-shadow: 0 15px 50px rgba(220, 53, 69, 0.5); border: 2px solid rgba(255, 255, 255, 0.1); overflow: hidden;">
+            <div
+                style="background: rgba(0, 0, 0, 0.2); padding: 15px 25px; border-bottom: 2px solid rgba(255, 255, 255, 0.2);">
+                <h5
+                    style="color: #fff; font-size: 1.1rem; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 1px;">
+                    <i class="fas fa-exclamation-triangle"
+                        style="margin-right: 10px; animation: shake 0.5s infinite;"></i>DANGER - Suppression Totale
+                </h5>
+            </div>
+            <div style="padding: 25px 30px; color: #fff;">
+                <div
+                    style="background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #fbbf24;">
+                    <p style="margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.6;">
+                        <i class="fas fa-exclamation-circle me-2" style="color: #fbbf24;"></i>
+                        Vous êtes sur le point de supprimer <strong>TOUS LES ARTICLES</strong> !
+                    </p>
+                </div>
+
+                <div style="background: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <p style="margin: 0 0 10px 0; font-size: 0.95rem; font-weight: 600;">
+                        <i class="fas fa-info-circle me-2"></i>Conséquences :
+                    </p>
+                    <ul style="margin: 0; padding-left: 25px; font-size: 0.9rem; line-height: 1.8;">
+                        <li>Tous les articles seront supprimés</li>
+                        <li>Toutes les réceptions liées seront supprimées</li>
+                        <li>Toutes les dotations liées seront supprimées</li>
+                        <li><strong>Cette action est IRRÉVERSIBLE</strong></li>
+                    </ul>
+                </div>
+
+                <div
+                    style="background: rgba(255, 255, 255, 0.15); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: 600; font-size: 0.95rem;">
+                        <i class="fas fa-keyboard me-2"></i>Pour confirmer, tapez : <code
+                            style="background: rgba(0, 0, 0, 0.3); padding: 3px 8px; border-radius: 4px; color: #fbbf24; font-weight: 700;">SUPPRIMER TOUT</code>
+                    </label>
+                    <input type="text" id="deleteAllItemsInput" class="form-control"
+                        placeholder="Tapez exactement : SUPPRIMER TOUT"
+                        style="background: rgba(255, 255, 255, 0.9); border: 2px solid rgba(255, 255, 255, 0.3); font-weight: 600; text-transform: uppercase;">
+                    <small id="deleteAllItemsError"
+                        style="color: #fbbf24; display: none; margin-top: 5px; font-weight: 600;">
+                        <i class="fas fa-times-circle me-1"></i>Texte incorrect !
+                    </small>
+                </div>
+            </div>
+            <div
+                style="background: rgba(0, 0, 0, 0.2); padding: 15px 25px; display: flex; justify-content: space-between; gap: 10px; border-top: 2px solid rgba(255, 255, 255, 0.2);">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"
+                    style="flex: 1; padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-times me-1"></i>Annuler
+                </button>
+                <button type="button" class="btn btn-danger" onclick="executeDeleteAllItems()"
+                    style="flex: 1; padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; background: #991b1b; border: none; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);">
+                    <i class="fas fa-trash-alt me-1"></i>Supprimer Tout
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes shake {
+
+        0%,
+        100% {
+            transform: rotate(0deg);
+        }
+
+        25% {
+            transform: rotate(-10deg);
+        }
+
+        75% {
+            transform: rotate(10deg);
+        }
+    }
+</style>
+
+<script>
+    // Fonction pour afficher le modal de confirmation
+    function confirmDeleteAllItems() {
+        // Réinitialiser le champ de confirmation
+        document.getElementById('deleteAllItemsInput').value = '';
+        document.getElementById('deleteAllItemsError').style.display = 'none';
+
+        // Afficher le modal
+        const deleteAllModal = new bootstrap.Modal(document.getElementById('deleteAllItemsModal'));
+        deleteAllModal.show();
+    }
+
+    // Fonction pour exécuter la suppression
+    function executeDeleteAllItems() {
+        const confirmInput = document.getElementById('deleteAllItemsInput');
+        const errorMsg = document.getElementById('deleteAllItemsError');
+
+        // Vérifier que l'utilisateur a tapé exactement "SUPPRIMER TOUT"
+        if (confirmInput.value.trim().toUpperCase() !== 'SUPPRIMER TOUT') {
+            errorMsg.style.display = 'block';
+            confirmInput.style.borderColor = '#fbbf24';
+            confirmInput.focus();
+
+            // Animation de secousse
+            confirmInput.style.animation = 'shake 0.5s';
+            setTimeout(() => {
+                confirmInput.style.animation = '';
+            }, 500);
+
+            return;
+        }
+
+        // Confirmation valide, procéder à la suppression
+        fetch('/delete_all_items', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                // Fermer le modal
+                bootstrap.Modal.getInstance(document.getElementById('deleteAllItemsModal')).hide();
+
+                if (data.success) {
+                    // Afficher un message de succès
+                    alert(`✓ ${data.message}\n\n${data.nb_items} article(s) supprimé(s)\n${data.nb_receptions} réception(s) supprimée(s)\n${data.nb_dotations} dotation(s) supprimée(s)`);
+
+                    // Recharger la page
+                    window.location.reload();
+                } else {
+                    alert('❌ Erreur : ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                alert('❌ Une erreur est survenue lors de la suppression.');
+            });
+    }
+
+    // Réinitialiser l'erreur quand l'utilisateur tape
+    document.addEventListener('DOMContentLoaded', function () {
+        const confirmInput = document.getElementById('deleteAllItemsInput');
+        if (confirmInput) {
+            confirmInput.addEventListener('input', function () {
+                document.getElementById('deleteAllItemsError').style.display = 'none';
+                this.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+            });
+
+            // Permettre la validation avec Enter
+            confirmInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    executeDeleteAllItems();
+                }
+            });
+        }
+    });
+</script>
+
+{% endblock %}

@@ -1,0 +1,1031 @@
+{% extends "base.html" %}
+
+{% block title %}Réceptions - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% import "macros/nature_icons.html" as nature_macros %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Tableau de Bord</a></li>
+<li class="breadcrumb-item active">Réceptions</li>
+{% endblock %}
+
+{% block content %}
+<script>window.suppressSuccessToast = true;</script>
+<!-- Formulaire de suppression caché -->
+<form autocomplete="off" id="deleteReceptionForm" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px; overflow: hidden;">
+            <div class="modal-header bg-danger text-white border-0 p-3">
+                <h5 class="modal-title fw-bold" id="confirmDeleteModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirmer la suppression
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <div class="mb-3">
+                        <i class="fas fa-trash-alt fa-3x text-danger opacity-25"></i>
+                    </div>
+                    <h5 class="fw-bold mb-3">Voulez-vous vraiment supprimer cette réception ?</h5>
+                    <p class="text-muted small px-4">Cette action est irréversible et retirera les quantités du stock
+                        associé. L'article restera dans la base de données.</p>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-light justify-content-center gap-2">
+                <button type="button" class="btn btn-secondary px-4 fw-bold" data-bs-dismiss="modal"
+                    style="border-radius: 8px;">
+                    <i class="fas fa-times me-2"></i>Annuler
+                </button>
+                <button type="button" class="btn btn-danger px-4 fw-bold shadow-sm" id="confirmDeleteBtn"
+                    style="border-radius: 8px;">
+                    <i class="fas fa-check me-2"></i>Confirmer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de succès de suppression -->
+<div class="modal fade" id="deleteSuccessModal" tabindex="-1" aria-labelledby="deleteSuccessModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="deleteSuccessModalLabel">
+                    <i class="fas fa-check-circle me-2"></i>Suppression réussie
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                    <h5 id="successMessage">Réception supprimée avec succès</h5>
+                    <p class="text-muted">La réception a été supprimée de la base de données.</p>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">
+                    <i class="fas fa-check me-1"></i> OK
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'erreur -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="errorModalLabel">
+                    <i class="fas fa-exclamation-circle me-2"></i>Erreur
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
+                    <h5 id="errorMessage">Une erreur est survenue</h5>
+                    <p class="text-muted" id="errorDetails"></p>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Fermer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded-3"
+    style="background: linear-gradient(135deg, rgba(255, 235, 59, 0.15) 0%, rgba(0, 188, 212, 0.15) 100%); border: 1px solid rgba(255, 235, 59, 0.3); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center"
+            style="width: 48px; height: 48px; background: linear-gradient(135deg, #FFEB3B 0%, #00BCD4 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(255, 235, 59, 0.4);">
+            <i class="fas fa-truck" style="color: #fff; font-size: 1.4rem;"></i>
+        </div>
+        <h4 class="mb-0"
+            style="font-weight: 700; color: #000; letter-spacing: 0.5px; font-size: 1.4rem; text-shadow: 0 2px 4px rgba(255, 255, 255, 0.5);">
+            Historique des Réceptions</h4>
+    </div>
+    <div class="d-flex gap-2">
+        {% if session.get('user_id') %}
+        {% set current_user = get_user_by_id(session.get('user_id')) %}
+        {% if current_user and current_user.role != 'user' %}
+        <a href="{{ url_for('add_reception') }}" class="btn btn-primary d-flex align-items-center gap-2"
+            style="padding: 8px 16px; font-size: 0.9rem; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); transition: all 0.3s ease; text-decoration: none; white-space: nowrap;">
+            <i class="fas fa-plus" style="font-size: 0.95rem;"></i>
+            <span>Nouvelle Réception</span>
+        </a>
+
+        <button type="button" id="bulkDeleteBtn" class="btn btn-outline-danger d-flex align-items-center gap-2"
+            onclick="if(typeof confirmBulkDelete === 'function' && confirmBulkDelete()) document.getElementById('bulkDeleteForm').submit();"
+            style="padding: 8px 16px; font-size: 0.9rem; font-weight: 700; border-radius: 8px;" disabled>
+            <i class="fas fa-trash"></i>
+            <span>Supprimer sélection</span>
+        </button>
+        <!-- Nettoyer les doublons -->
+        <button type="button" class="btn btn-outline-info d-flex align-items-center gap-2"
+            style="padding: 8px 16px; font-size: 0.9rem; font-weight: 700; border-radius: 8px;"
+            onclick="openCleanupReceptionDuplicatesModal()">
+            <i class="fas fa-broom"></i>
+            <span>Nettoyer doublons</span>
+        </button>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+<!-- Filtre par Nature de Prestation -->
+<div class="card border-0 shadow-sm mb-4"
+    style="border-radius: 12px; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px);">
+    <div class="card-body p-3">
+        <h6 class="mb-3 d-flex align-items-center fw-bold" style="color: #1e3a8a;">
+            <i class="fas fa-filter me-2 text-primary"></i>
+            Filtrer par Nature de Prestation & Année
+        </h6>
+        <form autocomplete="off" method="GET" action="{{ url_for('receptions') }}" id="filterForm">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-6 col-md-5">
+                    <label class="small text-muted mb-1 fw-bold">Catégorie d'article</label>
+                    <select class="form-select border-0 shadow-sm" name="category" id="category_filter"
+                        style="border-radius: 8px; font-weight: 500;">
+                        <option value="">Toutes les catégories</option>
+                        {% for category in categories %}
+                        <option value="{{ category }}" {{ 'selected' if current_category==category }}>
+                            {{ category }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-3 col-md-4">
+                    <label class="small text-muted mb-1 fw-bold">Année</label>
+                    <select class="form-select border-0 shadow-sm" name="year"
+                        style="border-radius: 8px; font-weight: 500;">
+                        <option value="">Toutes les années</option>
+                        {% for y in years %}
+                        <option value="{{ y }}" {{ 'selected' if current_year==y }}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-3 col-md-3 text-end">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary w-100 fw-bold"
+                            style="border-radius: 8px; padding: 10px;">
+                            <i class="fas fa-search me-1"></i>Filtrer
+                        </button>
+                        <a href="{{ url_for('receptions') }}"
+                            class="btn btn-outline-secondary d-flex align-items-center justify-content-center shadow-sm"
+                            style="border-radius: 8px; width: 45px;" title="Réinitialiser">
+                            <i class="fas fa-undo"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {% if years %}
+            {% if current_year %}
+            <!-- Navigation année précédente / suivante -->
+            <div class="d-flex align-items-center gap-2 mt-3 flex-wrap year-selector-nav">
+                {% if prev_year %}
+                <a href="{{ url_for('receptions', year=prev_year, category=current_category) }}"
+                    class="btn btn-sm year-nav-btn">
+                    <i class="fas fa-chevron-left me-1"></i> {{ prev_year }}
+                </a>
+                {% endif %}
+                <span class="badge year-current-badge">
+                    {{ current_year }}
+                </span>
+                {% if next_year %}
+                <a href="{{ url_for('receptions', year=next_year, category=current_category) }}"
+                    class="btn btn-sm year-nav-btn">
+                    {{ next_year }} <i class="fas fa-chevron-right ms-1"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Liste des années sous forme de pills -->
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-2 year-selector-container">
+                <span class="text-muted small me-1 year-selector-label">
+                    <i class="far fa-calendar-alt me-1"></i>Années :
+                </span>
+                <!-- Bouton Toutes les années -->
+                <a href="{{ url_for('receptions', category=current_category) }}"
+                    class="btn btn-sm year-pill {% if not current_year %}year-pill--active{% endif %}">
+                    Toutes
+                </a>
+                {% for y in years %}
+                <a href="{{ url_for('receptions', year=y, category=current_category) }}"
+                    class="btn btn-sm year-pill {% if current_year == y %}year-pill--active{% endif %}"
+                    title="Voir l'année {{ y }}">
+                    {{ y }}
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="form-text mt-3">
+                {% if current_category %}
+                <span class="badge bg-warning text-dark px-2 py-1">
+                    <i class="fas fa-tags me-1"></i>{{ current_category }}
+                    <a href="{{ url_for('receptions', year=current_year) }}" class="ms-1 text-danger">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </span>
+                {% endif %}
+                {% if current_year %}
+                <span class="badge bg-info text-white px-2 py-1 ms-1">
+                    <i class="fas fa-calendar-alt me-1"></i>Année: {{ current_year }}
+                    <a href="{{ url_for('receptions', category=current_category) }}" class="ms-1 text-white opacity-75">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </span>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if receptions %}
+{% if session.get('user_id') %}
+{% set current_user = get_user_by_id(session.get('user_id')) %}
+{% endif %}
+
+<!-- Formulaire de suppression multiple enveloppant le tableau -->
+<form autocomplete="off" id="bulkDeleteForm" action="{{ url_for('delete_receptions_multiple') }}" method="POST"
+    onsubmit="return confirmBulkDelete();">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="table-responsive rounded-3 shadow-sm border">
+        <table class="table table-hover align-middle mb-0">
+            <thead style="background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);">
+                <tr>
+                    {% if current_user and current_user.role != 'user' %}
+                    <th style="width: 40px; border: none;" class="px-3 text-center">
+                        <input type="checkbox" id="selectAll" class="form-check-input shadow-none"
+                            style="cursor: pointer;">
+                    </th>
+                    {% endif %}
+                    <th class="text-center text-white fw-bold py-3"
+                        style="width: 100px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border: none;">
+                        Date</th>
+                    <th class="text-white fw-bold py-3"
+                        style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border: none;">
+                        Article & SKU</th>
+                    <th class="text-center text-white fw-bold py-3"
+                        style="width: 130px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border: none;">
+                        Type</th>
+                    <th class="text-center text-white fw-bold py-3"
+                        style="width: 110px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border: none;">
+                        Quantité</th>
+                    <th class="text-center text-white fw-bold py-3"
+                        style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border: none;">
+                        Fournisseur</th>
+                    <th class="text-center text-white fw-bold py-3"
+                        style="width: 150px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border: none;">
+                        Réception par</th>
+                    <th class="text-center text-white fw-bold py-3"
+                        style="width: 90px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border: none;">
+                        Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reception in receptions %}
+                <tr style="border-bottom: 1px solid #edf2f7; vertical-align: middle;">
+                    {% if current_user and current_user.role != 'user' %}
+                    <td class="text-center">
+                        <input type="checkbox" class="form-check-input row-checkbox shadow-none" name="reception_ids[]"
+                            value="{{ reception.id }}" style="cursor: pointer; width: 18px; height: 18px;">
+                    </td>
+                    {% endif %}
+                    <td style="text-align: center; font-weight: 500; font-size: 0.95rem;">
+                        {{ reception.date_reception.strftime('%d/%m/%Y') if reception.date_reception else
+                        format_datetime(reception.created_at, '%d/%m/%Y') }}
+                    </td>
+                    <td>
+                        <div class="d-flex flex-column">
+                            <span style="font-weight: 600; color: #334155;">{{ reception.item.name }}</span>
+                            <small class="text-muted" style="font-size: 0.75rem;">SKU: {{ reception.item.sku }}</small>
+                        </div>
+                    </td>
+                    <td style="text-align: center;">
+                        {% if reception.type == 'reception' %}
+                        <span class="badge"
+                            style="background-color: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); font-weight: 600;">
+                            <i class="fas fa-truck-loading me-1"></i>Réception
+                        </span>
+                        {% elif reception.type == 'ajustement' %}
+                        <span class="badge"
+                            style="background-color: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); font-weight: 600;">
+                            <i class="fas fa-tools me-1"></i>Ajustement
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <strong class="text-success" style="font-size: 1.05rem;">+{{ reception.quantity }}</strong>
+                        <span class="text-muted small">{{ reception.item.unit }}</span>
+                    </td>
+                    <td style="text-align: center;">
+                        {% if reception.reason %}
+                        <span class="badge bg-light text-dark border-0 shadow-sm px-2 py-1" style="font-weight: 500;">
+                            <i class="fas fa-store me-1 text-primary"></i>{{ reception.reason }}
+                        </span>
+                        {% else %}
+                        <span class="text-muted fst-italic small">Non spécifié</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        <span class="small text-secondary fw-500">
+                            {{ reception.user.name if reception.user else 'Système' }}
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        {% if current_user and current_user.role != 'user' %}
+                        <div class="d-flex justify-content-center gap-1">
+                            <a href="{{ url_for('edit_reception', reception_id=reception.id) }}"
+                                class="btn btn-sm btn-outline-warning border-0" title="Modifier"
+                                style="padding: 4px 8px;">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% if reception.type == 'reception' %}
+                            <button type="button" class="btn btn-sm btn-outline-danger border-0 btn-delete-reception"
+                                title="Supprimer" data-id="{{ reception.id }}"
+                                data-name="{{ reception.item.name }} ({{ reception.quantity }} {{ reception.item.unit if reception.item else '' }})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% else %}
+                            <span class="text-muted small" title="Suppression interdite pour un ajustement">
+                                <i class="fas fa-lock"></i>
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="badge"
+                            style="background-color: rgba(13, 202, 240, 0.1); color: #0dcaf0; border: 1px solid rgba(13, 202, 240, 0.2); font-size: 0.75rem;">
+                            <i class="fas fa-eye me-1"></i>Vue seule
+                        </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</form>
+
+<!-- Pagination -->
+{% if pagination and pagination.pages > 1 %}
+<nav aria-label="Navigation des réceptions" class="mt-4">
+    <ul class="pagination justify-content-center">
+        <!-- Bouton Précédent -->
+        <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+            <a class="page-link"
+                href="{{ url_for('receptions', page=pagination.prev_num, category=current_category, year=current_year) if pagination.has_prev else '#' }}"
+                style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 8px; margin-right: 0.5rem; min-width: 100px; font-weight: 600;">
+                <i class="fas fa-chevron-left me-1"></i>Précédent
+            </a>
+        </li>
+
+        <!-- Numéros de page -->
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+        {% if page_num %}
+        <li class="page-item {{ 'active' if page_num == pagination.page }}">
+            <a class="page-link"
+                href="{{ url_for('receptions', page=page_num, category=current_category, year=current_year) }}"
+                style="min-width: 40px; height: 40px; border-radius: 8px; margin: 0 0.25rem; border: 2px solid {{ '#f97316' if page_num == pagination.page else 'transparent' }}; background: {{ 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' if page_num == pagination.page else 'white' }}; color: {{ 'white' if page_num == pagination.page else '#000' }}; font-weight: {{ '700' if page_num == pagination.page else '500' }}; box-shadow: {{ '0 4px 12px rgba(249, 115, 22, 0.4)' if page_num == pagination.page else '0 2px 4px rgba(0, 0, 0, 0.1)' }};">
+                {{ page_num }}
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link" style="border: none; background: transparent;">...</span>
+        </li>
+        {% endif %}
+        {% endfor %}
+
+        <!-- Bouton Suivant -->
+        <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+            <a class="page-link"
+                href="{{ url_for('receptions', page=pagination.next_num, category=current_category, year=current_year) if pagination.has_next else '#' }}"
+                style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 8px; margin-left: 0.5rem; min-width: 100px; font-weight: 600;">
+                Suivant<i class="fas fa-chevron-right ms-1"></i>
+            </a>
+        </li>
+    </ul>
+
+    <!-- Info pagination -->
+    <div class="text-center mt-2">
+        <small class="text-muted">
+            Page {{ pagination.page }} sur {{ pagination.pages }}
+            ({{ pagination.total }} réception{{ 's' if pagination.total > 1 else '' }})
+        </small>
+    </div>
+</nav>
+{% endif %}
+
+<!-- Statistiques des réceptions -->
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-truck fa-2x text-success mb-2"></i>
+                <h4>{{ receptions|selectattr('type', 'equalto', 'reception')|list|length }}</h4>
+                <p class="text-muted mb-0">Réceptions</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-edit fa-2x text-warning mb-2"></i>
+                <h4>{{ receptions|selectattr('type', 'equalto', 'ajustement')|list|length }}</h4>
+                <p class="text-muted mb-0">Ajustements</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-boxes fa-2x text-primary mb-2"></i>
+                <h4>{{ receptions|sum(attribute='quantity') }}</h4>
+                <p class="text-muted mb-0">Unités Reçues</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-truck fa-3x text-muted mb-3"></i>
+        <h4>Aucune réception enregistrée</h4>
+        <p class="text-muted mb-4">Commencez par enregistrer votre première réception de fournitures.</p>
+        <a href="{{ url_for('add_reception') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Première Réception
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal de succès de réception -->
+<div class="modal fade" id="successReceptionModal" tabindex="-1" aria-labelledby="successReceptionModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+            style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 12px; box-shadow: 0 10px 40px rgba(40, 167, 69, 0.4); border: none; overflow: hidden;">
+            <!-- En-tête -->
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                <h5
+                    style="color: #fff; font-size: 0.95rem; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-check-circle" style="margin-right: 8px;"></i>Réception Enregistrée avec Succès
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+
+            <!-- Corps compact -->
+            <div style="padding: 20px 25px 15px 25px; color: #fff;">
+                <!-- Message de succès -->
+                <div
+                    style="text-align: center; margin-bottom: 12px; font-size: 0.95rem; line-height: 1.5; font-weight: 500;">
+                    <div>La réception a été enregistrée</div>
+                    <div>et le stock mis à jour avec succès</div>
+                </div>
+
+                <!-- Informations de la réception -->
+                <div
+                    style="background: rgba(255, 255, 255, 0.15); padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.25);">
+                    <div style="font-size: 0.8rem; margin-bottom: 3px; opacity: 0.9;">
+                        <i class="fas fa-truck" style="margin-right: 5px;"></i>Article
+                    </div>
+                    <div style="font-size: 1rem; font-weight: 700; letter-spacing: 0.5px;" id="successReceptionItem">
+                    </div>
+                </div>
+
+                <!-- Détails compacts -->
+                <div
+                    style="background: rgba(0, 0, 0, 0.2); padding: 8px 12px; border-radius: 6px; font-size: 0.8rem; line-height: 1.6; text-align: center; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <div><i class="fas fa-info-circle" style="margin-right: 5px;"></i><span
+                            id="successReceptionDetails"></span></div>
+                </div>
+            </div>
+
+            <!-- Footer compact avec boutons -->
+            <div
+                style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal"
+                    style="flex: 1; padding: 8px 20px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; background: rgba(255, 255, 255, 0.95); border: none; color: #000; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-check me-1"></i>OK
+                </button>
+                <a href="{{ url_for('add_reception') }}" class="btn btn-warning"
+                    style="flex: 1; padding: 8px 20px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; background: #ffc107; border: none; color: #000; box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4); text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; text-align: center;">
+                    <i class="fas fa-plus me-1"></i>Nouvelle
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmation pour suppression multiple -->
+<div class="modal fade" id="confirmBulkDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+            <div class="modal-header bg-danger text-white border-0" style="border-radius: 15px 15px 0 0;">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Suppression Groupée
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="mb-3">
+                    <i class="fas fa-trash-alt fa-3x text-danger opacity-25"></i>
+                </div>
+                <h5 class="fw-bold mb-3">Supprimer <span id="bulkDeleteCount" class="text-danger">0</span> réceptions ?
+                </h5>
+                <p class="text-secondary mb-3 small">Cette action est irréversible. Les stocks seront ajustés en
+                    conséquence.</p>
+
+                <div class="form-check mt-3 pt-3 border-top text-start d-inline-block">
+                    <input class="form-check-input" type="checkbox" id="bulkDeleteItemToo"
+                        style="width: 18px; height: 18px; cursor: pointer;">
+                    <label class="form-check-label text-danger fw-bold ms-2" for="bulkDeleteItemToo"
+                        style="cursor: pointer;">
+                        Supprimer également les fiches articles orphelines
+                    </label>
+                    <div class="small text-muted mt-1" style="max-width: 350px;">
+                        Supprime l'article s'il n'est plus lié à aucune autre réception ou dotation.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-light" style="border-radius: 0 0 15px 15px;">
+                <button type="button" class="btn btn-secondary px-4 fw-bold" data-bs-dismiss="modal"
+                    style="border-radius: 8px;">Annuler</button>
+                <button type="button" id="confirmBulkDeleteBtn" class="btn btn-danger px-4 fw-bold shadow-sm"
+                    style="border-radius: 8px;">
+                    Confirmer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="mb-4">
+    {% for category, message in messages %}
+    {% if category == 'success' and 'Réception enregistrée' in message %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(function () {
+                const messageText = '{{ message|safe }}';
+                const parts = messageText.split('|');
+                if (parts.length > 1) document.getElementById('successReceptionItem').textContent = parts[1].trim();
+                if (parts.length > 2) document.getElementById('successReceptionDetails').textContent = parts.slice(2).join(' | ').trim();
+                const modalElement = document.getElementById('successReceptionModal');
+                if (modalElement && typeof bootstrap !== 'undefined') new bootstrap.Modal(modalElement).show();
+            }, 100);
+        });
+    </script>
+    {% else %}
+    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show shadow-sm border-0 mb-2"
+        role="alert"
+        style="border-left: 5px solid {{ '#dc3545' if category == 'error' else '#28a745' if category == 'success' else '#ffc107' }} !important;">
+        <div class="d-flex align-items-center">
+            {% if category == 'success' %}
+            <i class="fas fa-check-circle me-3 fa-lg" style="color: #28a745;"></i>
+            {% elif category == 'error' %}
+            <i class="fas fa-exclamation-circle me-3 fa-lg" style="color: #dc3545;"></i>
+            {% else %}
+            <i class="fas fa-info-circle me-3 fa-lg" style="color: #ffc107;"></i>
+            {% endif %}
+            <div class="text-dark fw-bold">{{ message|safe }}</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<!-- Script pour soumettre automatiquement le filtre -->
+<script>
+    // Fonction pour afficher une erreur dans un modal
+    function showError(message, details = '') {
+        const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+        document.getElementById('errorMessage').textContent = message;
+        const errorDetails = document.getElementById('errorDetails');
+
+        if (details) {
+            errorDetails.textContent = details;
+            errorDetails.style.display = 'block';
+        } else {
+            errorDetails.style.display = 'none';
+        }
+
+        errorModal.show();
+    }
+
+    // Fonction pour confirmer la suppression d'une réception
+    function confirmDeleteReception(deleteUrl, itemName = 'cette réception') {
+        const modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+
+        // Mettre à jour le message de confirmation
+        const message = document.querySelector('#confirmDeleteModal .modal-body h5');
+        message.textContent = `Êtes-vous sûr de vouloir supprimer ${itemName} ?`;
+
+        // Mettre à jour le lien de suppression
+        confirmBtn.href = deleteUrl;
+
+        // Afficher le modal
+        modal.show();
+    }
+
+    // Fonction pour afficher un message de succès
+    function showSuccess(title, message) {
+        // Créer un élément d'alerte Bootstrap
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+        alertDiv.role = 'alert';
+        alertDiv.style.position = 'fixed';
+        alertDiv.style.top = '20px';
+        alertDiv.style.right = '20px';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.style.minWidth = '300px';
+        alertDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+
+        // Ajouter le contenu de l'alerte
+        alertDiv.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="fas fa-check-circle me-2" style="font-size: 1.5rem;"></i>
+            <div>
+                <strong>${title}</strong>
+                <div class="small">${message}</div>
+            </div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    `;
+
+        // Ajouter l'alerte au corps du document
+        document.body.appendChild(alertDiv);
+
+        // Fermer automatiquement après 5 secondes
+        setTimeout(() => {
+            const bsAlert = new bootstrap.Alert(alertDiv);
+            bsAlert.close();
+        }, 5000);
+    }
+
+    // Fonction pour afficher un message de succès après suppression
+    function showDeleteSuccess() {
+        const successModal = new bootstrap.Modal(document.getElementById('deleteSuccessModal'));
+        successModal.show();
+    }
+
+    // Gestion des messages flash
+    document.addEventListener('DOMContentLoaded', function () {
+        // Vérifier s'il y a un message de succès de suppression dans l'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('deleted') === 'true') {
+            showDeleteSuccess();
+            // Nettoyer l'URL
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+        }
+
+        // Vérifier s'il y a un message de succès de nettoyage des doublons
+        const cleanupSuccess = urlParams.get('cleanup_success');
+        if (cleanupSuccess) {
+            // Afficher le message de succès
+            showSuccess('Succès', decodeURIComponent(cleanupSuccess));
+            // Nettoyer l'URL
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+        }
+
+        // Gestion des erreurs de doublons
+        const errorMessages = document.querySelectorAll('.alert-danger');
+        errorMessages.forEach(alert => {
+            const errorText = alert.textContent.trim();
+            if (errorText.includes('doublon') || errorText.includes('existe déjà')) {
+                showError('Erreur de doublon', 'Cet enregistrement existe déjà dans la base de données.');
+            }
+        });
+
+        // Initialisation des tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Gestion des boutons de suppression individuelle
+        const deleteButtons = document.querySelectorAll('.btn-delete-reception');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                const receptionId = this.getAttribute('data-id');
+                const itemName = this.getAttribute('data-name') || 'cette réception';
+
+                // Afficher la confirmation de suppression
+                const modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+                const confirmBtn = document.getElementById('confirmDeleteBtn');
+
+                // Mettre à jour le message de confirmation
+                const messageHeader = document.querySelector('#confirmDeleteModal .modal-body h5');
+                messageHeader.innerHTML = `Voulez-vous vraiment supprimer <br><span class="text-danger" style="font-weight: 700;">${itemName}</span> ?`;
+
+                // Gérer le clic sur confirmation
+                confirmBtn.onclick = function (evt) {
+                    evt.preventDefault();
+
+                    // Créer un formulaire temporaire pour la suppression
+                    const tempForm = document.createElement('form');
+                    tempForm.method = 'POST';
+                    tempForm.action = `/receptions/${receptionId}/delete`;
+
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrf_token';
+                    csrfInput.value = '{{ csrf_token() }}';
+                    tempForm.appendChild(csrfInput);
+
+                    document.body.appendChild(tempForm);
+                    tempForm.submit();
+                };
+
+                modal.show();
+            });
+        });
+        const categoryFilter = document.getElementById('category_filter');
+
+        if (categoryFilter) {
+            // Soumettre automatiquement le formulaire lors du changement de catégorie
+            categoryFilter.addEventListener('change', function () {
+                document.getElementById('filterForm').submit();
+            });
+        }
+        // Gestion sélection et suppression multiple
+        const selectAll = document.getElementById('selectAll');
+        const bulkBtn = document.getElementById('bulkDeleteBtn');
+
+        function getCheckboxes() {
+            return Array.from(document.querySelectorAll('.row-checkbox'));
+        }
+
+        function updateBulkState() {
+            const checkboxes = getCheckboxes();
+            const selected = checkboxes.filter(cb => cb.checked).length;
+            if (bulkBtn) {
+                bulkBtn.disabled = selected === 0;
+                // Mettre à jour le texte du bouton si possible
+                const span = bulkBtn.querySelector('span');
+                if (span) {
+                    span.textContent = selected > 0 ? `Supprimer (${selected})` : 'Supprimer sélection';
+                }
+            }
+        }
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                const checkboxes = getCheckboxes();
+                checkboxes.forEach(cb => { cb.checked = selectAll.checked; });
+                updateBulkState();
+            });
+        }
+
+        // Utiliser la délégation d'événements pour les checkboxes si le tableau change
+        document.querySelector('table').addEventListener('change', function (e) {
+            if (e.target.classList.contains('row-checkbox')) {
+                updateBulkState();
+            }
+        });
+    });
+
+    function confirmBulkDelete() {
+        const selected = document.querySelectorAll('.row-checkbox:checked').length;
+        if (selected === 0) {
+            alert('Veuillez sélectionner au moins une réception à supprimer.');
+            return false;
+        }
+
+        return confirm(`Confirmer la suppression de ${selected} réception(s) ?\n\nLes articles resteront dans la base de données.`);
+    }
+</script>
+
+<script>
+    // Modal de nettoyage des doublons de réceptions
+    function openCleanupReceptionDuplicatesModal() {
+        const modalElement = document.getElementById('cleanupReceptionDuplicatesModal');
+        if (modalElement && typeof bootstrap !== 'undefined') {
+            const modal = new bootstrap.Modal(modalElement, {
+                backdrop: 'static',
+                keyboard: false
+            });
+            modal.show();
+        } else {
+            cleanupReceptionDuplicates();
+        }
+    }
+
+    function cleanupReceptionDuplicates() {
+        const confirmBtn = document.getElementById('cleanupReceptionDuplicatesConfirmBtn');
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+        }
+
+        fetch('/admin/receptions/duplicates/cleanup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                confirm: true,
+                dry_run: false
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.success) {
+                    // Rediriger avec un message flash
+                    const msg = `Nettoyage des doublons de réceptions terminé. ` +
+                        `Réceptions traitées: ${data.groups_processed || 0}. ` +
+                        `Doublons supprimés: ${data.duplicates_removed || 0}.`;
+                    // Utiliser une redirection avec un paramètre de message flash
+                    window.location.href = '{{ url_for("receptions") }}?cleanup_success=' + encodeURIComponent(msg);
+                } else {
+                    alert('Erreur lors du nettoyage des doublons de réceptions: ' + (data.message || 'Erreur inconnue'));
+                }
+            })
+            .catch(err => {
+                console.error('Erreur nettoyage doublons réceptions:', err);
+                alert('Erreur technique lors du nettoyage des doublons de réceptions.');
+            })
+            .finally(() => {
+                const modalElement = document.getElementById('cleanupReceptionDuplicatesModal');
+                if (modalElement && typeof bootstrap !== 'undefined') {
+                    const instance = bootstrap.Modal.getInstance(modalElement);
+                    if (instance) {
+                        instance.hide();
+                    }
+                }
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                }
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Ce bloc était utilisé pour gérer l'affichage du modal d'import Excel des réceptions.
+        // L'import Excel ayant été supprimé, ce code n'est plus nécessaire.
+    });
+</script>
+
+<style>
+    /* Animation pour le modal de succès */
+    #successReceptionModal .modal-content {
+        animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-50px) scale(0.9);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /* Effet hover sur les boutons */
+    #successReceptionModal .btn-light:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    #successReceptionModal .btn-warning:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(255, 193, 7, 0.5);
+    }
+
+    /* Animation de l'icône */
+    #successReceptionModal .fa-check-circle {
+        animation: iconPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes iconPulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.1);
+        }
+    }
+
+    /* Styles pour la navigation par année */
+    .year-selector-container {
+        padding: 12px 16px;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.05) 100%);
+        border-radius: 12px;
+        border: 1px solid rgba(59, 130, 246, 0.1);
+    }
+
+    .year-selector-label {
+        font-weight: 600;
+        color: #64748b;
+        font-size: 0.85rem;
+    }
+
+    .year-pill {
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        background: white;
+        border: 2px solid #e2e8f0;
+        color: #475569;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .year-pill:hover {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border-color: #2563eb;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .year-pill--active {
+        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        border-color: #ea580c;
+        color: white;
+        box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+    }
+
+    .year-pill--active:hover {
+        background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+        border-color: #c2410c;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(249, 115, 22, 0.5);
+    }
+
+    .year-selector-nav {
+        padding: 10px 16px;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 10px;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    .year-nav-btn {
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        background: white;
+        border: 2px solid #cbd5e1;
+        color: #475569;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+
+    .year-nav-btn:hover {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border-color: #059669;
+        color: white;
+        transform: translateX(0) scale(1.05);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .year-current-badge {
+        padding: 8px 20px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+</style>
+
+{% endblock %}

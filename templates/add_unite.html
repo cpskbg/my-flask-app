@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}Ajouter une Unité/Centre - Administration{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        padding: 2rem;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .modern-card {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+    }
+
+    .form-title {
+        font-weight: 800;
+        color: #1e3a8a;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: #475569;
+        font-size: 0.9rem;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        transition: border-color 0.2s;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #1e3a8a;
+        box-shadow: none;
+    }
+
+    .btn-submit {
+        background: #1e3a8a;
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 12px;
+        font-weight: 700;
+        border: none;
+        width: 100%;
+        margin-top: 1rem;
+    }
+
+    .btn-submit:hover {
+        background: #1e40af;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="modern-card">
+        <h2 class="form-title">
+            <i class="fas fa-plus-circle"></i>
+            Ajouter une nouvelle structure
+        </h2>
+
+        <form autocomplete="off" action="{{ url_for('add_unite') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <label for="nom">Nom de la structure</label>
+                <input type="text" id="nom" name="nom" class="form-control"
+                    placeholder="ex: Unité de Sidi Kacem ou Centre de secours X" required>
+            </div>
+
+            <div class="form-group">
+                <label for="type">Type de structure</label>
+                <select id="type" name="type" class="form-select" required onchange="toggleParent()">
+                    <option value="unite">Unité Provinciale (Commandement)</option>
+                    <option value="centre" selected>Centre de Secours</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="region_group">
+                <label for="region_id">Région du Maroc</label>
+                <select id="region_id" name="region_id" class="form-select">
+                    <option value="">-- Sélectionner la région --</option>
+                    {% for r in regions %}
+                    <option value="{{ r.id }}" {% if (current_user and current_user.region_id==r.id) %}selected{% endif
+                        %}>{{ r.nom }}</option>
+                    {% endfor %}
+                </select>
+                <small class="text-muted">Chaque unité provinciale doit être rattachée à une région.</small>
+            </div>
+
+            <div class="form-group" id="parent_group">
+                <label for="parent_id">Rattachement (Unité Provinciale)</label>
+                <select id="parent_id" name="parent_id" class="form-select">
+                    <option value="">-- Sélectionner l'unité de rattachement --</option>
+                    {% for u in unites_principales %}
+                    <option value="{{ u.id }}">{{ u.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description (optionnel)</label>
+                <textarea id="description" name="description" class="form-control" rows="2"
+                    placeholder="Informations complémentaires..."></textarea>
+            </div>
+
+            <div class="form-group mt-4 p-3 bg-light border rounded-3">
+                <label for="services_liste" class="text-primary d-flex align-items-center gap-2">
+                    <i class="fas fa-list-check"></i>
+                    Services à créer immédiatement (Optionnel)
+                </label>
+                <p class="small text-muted mb-2">Saisissez un service par ligne (ex: Service RH, Service Technique...)
+                </p>
+                <textarea id="services_liste" name="services_liste" class="form-control border-dashed" rows="4"
+                    placeholder="SERVICE RH&#10;SERVICE TECHNIQUE&#10;SERVICE COMPTABILITÉ"
+                    style="border: 2px dashed #cbd5e1;"></textarea>
+            </div>
+
+            <button type="submit" class="btn-submit">
+                <i class="fas fa-save me-2"></i> Enregistrer la structure
+            </button>
+
+            <div class="text-center mt-4">
+                <a href="{{ url_for('admin_unites') }}"
+                    style="color: #64748b; font-weight: 600; text-decoration: none;">
+                    <i class="fas fa-arrow-left me-1"></i> Retour à la liste
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleParent() {
+        const type = document.getElementById('type').value;
+        const parentGroup = document.getElementById('parent_group');
+        const regionGroup = document.getElementById('region_group');
+
+        if (type === 'unite') {
+            parentGroup.style.display = 'none';
+            regionGroup.style.display = 'block';
+        } else {
+            parentGroup.style.display = 'block';
+            regionGroup.style.display = 'none';
+        }
+    }
+    // Init state
+    toggleParent();
+</script>
+{% endblock %}

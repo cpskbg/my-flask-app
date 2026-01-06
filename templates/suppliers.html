@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    body {
+        overflow-x: hidden;
+    }
+    .table-header-custom {
+        background: linear-gradient(135deg, #343a40 0%, #495057 100%);
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .table-header-custom th {
+        border-color: #495057 !important;
+        padding: 1rem 0.75rem;
+        text-align: center;
+        vertical-align: middle;
+        white-space: nowrap;
+        font-size: 0.85rem;
+    }
+    .star-rating {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .star {
+        font-size: 1.1rem;
+        color: #e9ecef;
+        margin: 0 1px;
+        transition: color 0.2s ease-in-out;
+    }
+    .star.filled {
+        color: #ffc107;
+    }
+    .empty-state {
+        border: 2px dashed #e0e0e0;
+        background-color: #f8f9fa;
+    }
+    .category-tag {
+        display: inline-block;
+        background-color: #e9ecef;
+        color: #495057;
+        padding: 0.25rem 0.6rem;
+        border-radius: 15px;
+        margin: 2px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="fas fa-truck me-2"></i>Gestion des Fournisseurs</h2>
+        <a href="{{ url_for('add_fournisseur') }}" class="btn btn-success shadow-sm">
+            <i class="fas fa-user-plus me-2"></i>Ajouter un fournisseur
+        </a>
+    </div>
+
+    {% if fournisseurs %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-header-custom">
+                        <tr>
+                            <th style="width:25%;"><i class="fas fa-building me-2"></i>Raison Sociale</th>
+                            <th style="width:10%;"><i class="fas fa-check-circle me-2"></i>Statut</th>
+                            <th style="width:25%;"><i class="fas fa-tags me-2"></i>Catégories</th>
+                            <th style="width:15%;"><i class="fas fa-city me-2"></i>Ville</th>
+                            <th style="width:15%;"><i class="fas fa-at me-2"></i>Contact</th>
+                            <th style="width:10%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in fournisseurs %}
+                        {% set delai = f.delai_moyen_livraison_jours or 0 %}
+                        <tr>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ f.nom }}</div>
+                                <div class="small mt-1 text-muted">
+                                    RC: {{ f.registre_commerce or '-' }} | IF: {{ f.identification_fonciere or '-' }}
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                {% if f.statut == 'Actif' %}
+                                    <span class="badge" style="background-color: #28a745; color: white;">● Actif</span>
+                                {% elif f.statut == 'Inactif' %}
+                                    <span class="badge" style="background-color: #6c757d; color: white;">● Inactif</span>
+                                {% elif f.statut == 'Bloqué' %}
+                                    <span class="badge" style="background-color: #dc3545; color: white;">● Bloqué</span>
+                                {% else %}
+                                    <span class="badge" style="background-color: #ffc107; color: black;">● En attente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% for cat in f.categories %}
+                                    {% if cat.parent %}
+                                        <span class="badge badge-info mb-1">{{ cat.parent.nom[:15] }}... > {{ cat.nom }}</span><br>
+                                    {% elif not cat.children %}
+                                         <span class="badge badge-light mb-1 border">{{ cat.nom }}</span><br>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td class="text-center">
+                                {% if f.ville %}
+                                    <span class="badge bg-secondary"><i class="fas fa-map-marker-alt me-1"></i>{{ f.ville }}</span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if f.email %}
+                                    <div><a href="mailto:{{ f.email }}" class="text-decoration-none"><i class="fas fa-envelope-open-text me-1 text-primary"></i>{{ f.email }}</a></div>
+                                {% endif %}
+                                {% if f.telephone %}
+                                    <div class="mt-1"><a href="tel:{{ f.telephone }}" class="text-decoration-none"><i class="fas fa-phone-alt me-1 text-success"></i>{{ f.telephone }}</a></div>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('edit_fournisseur', supplier_id=f.id) }}" class="btn btn-outline-primary" title="Modifier">
+                                        <i class="fas fa-pen"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" title="Supprimer"
+                                            data-bs-toggle="modal" data-bs-target="#deleteSupplierModal"
+                                            data-supplier-id="{{ f.id }}" data-supplier-name="{{ f.nom }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center p-5 card shadow-sm empty-state">
+        <i class="fas fa-box-open fa-4x text-muted mb-3"></i>
+        <h5 class="mb-3">Aucun fournisseur trouvé</h5>
+        <p class="text-muted">Commencez par ajouter votre premier fournisseur pour les retrouver ici.</p>
+        <a href="{{ url_for('add_fournisseur') }}" class="btn btn-success mt-3">
+            <i class="fas fa-user-plus me-2"></i>Ajouter votre premier fournisseur
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteSupplierModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Confirmation de Suppression</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer le fournisseur <strong id="supplierNameToDelete"></strong> ?</p>
+                <p class="text-danger"><small>Cette action est irréversible.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form autocomplete="off" id="deleteSupplierForm" method="post" action="">
+                    <button type="submit" class="btn btn-danger">Supprimer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var deleteModal = document.getElementById('deleteSupplierModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var supplierId = button.getAttribute('data-supplier-id');
+        var supplierName = button.getAttribute('data-supplier-name');
+        
+        var modalBodyName = deleteModal.querySelector('#supplierNameToDelete');
+        modalBodyName.textContent = supplierName;
+        
+        var deleteForm = deleteModal.querySelector('#deleteSupplierForm');
+        var actionUrl = "{{ url_for('delete_fournisseur', supplier_id=0) }}".replace('0', supplierId);
+        deleteForm.setAttribute('action', actionUrl);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,401 @@
+{% extends "base.html" %}
+
+{% block title %}Modifier Réception - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block extra_css %}
+<style>
+    .container-fluid {
+        max-width: 1400px;
+    }
+    
+    .compact-form .mb-3 {
+        margin-bottom: 1rem !important;
+    }
+    
+    .compact-form .alert {
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Tableau de Bord</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('receptions') }}">Réceptions</a></li>
+<li class="breadcrumb-item active">Modifier Réception</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); padding: 1.5rem; border-bottom: 3px solid #ff9800;">
+                    <h4 class="mb-0" style="font-weight: 700; font-size: 1.5rem; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); letter-spacing: 0.5px;">
+                        <i class="fas fa-edit me-2" style="font-size: 1.6rem; vertical-align: middle;"></i>
+                        Modifier une Réception
+                    </h4>
+                </div>
+                <div class="card-body compact-form">
+                <form autocomplete="off" method="POST">
+                    <!-- Informations de la réception -->
+                    <div class="alert alert-info mb-3">
+                        <h6 class="mb-2"><i class="fas fa-info-circle me-2"></i>Informations de la Réception</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Date:</strong> {{ format_datetime(reception.created_at, '%d/%m/%Y à %H:%M') }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Type:</strong> 
+                                {% if reception.type == 'reception' %}
+                                    <span class="badge bg-success">Réception</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Ajustement</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Article</label>
+                            <input type="text" class="form-control" value="{{ reception.item.name }} ({{ reception.item.sku }})" readonly style="background-color: #e9ecef; font-weight: 600;">
+                            <div class="form-text">
+                                Stock actuel: <strong>{{ reception.item.quantity }} {{ reception.item.unit }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="quantity" class="form-label">Quantité * <span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Modifiable</span></label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="quantity" name="quantity" min="1" value="{{ reception.quantity }}" required>
+                                <span class="input-group-text">{{ reception.item.unit }}</span>
+                            </div>
+                            <div class="form-text text-warning">
+                                <i class="fas fa-info-circle"></i> La modification de la quantité ajustera automatiquement le stock
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="date_reception" class="form-label">Date de Réception <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="date_reception" name="date_reception" 
+                                   value="{{ format_datetime(reception.date_reception, '%Y-%m-%d') if reception.date_reception else '' }}" required>
+                            <div class="form-text">
+                                <i class="fas fa-calendar-alt me-1"></i>Date de la réception
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="reason" class="form-label">Fournisseur <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="reason" name="reason" value="{{ reception.reason }}" required
+                                   placeholder="Ex: Fournisseur A, Entreprise XYZ...">
+                        </div>
+                    </div>
+                    
+                    <!-- SECTION BUDGÉTAIRE -->
+                    <div class="alert alert-warning" style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%); border-left: 4px solid #ffc107; margin-bottom: 1.5rem;">
+                        <h6 class="mb-3" style="color: #ff6b35; font-weight: 700;">
+                            <i class="fas fa-calculator me-2"></i>Informations Budgétaires - Rectification
+                        </h6>
+                        
+                        <div class="row">
+                            <!-- Prix Unitaire HT -->
+                            <div class="col-md-3 mb-3">
+                                <label for="pu_ht" class="form-label">P.U HT (DH) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" min="0" class="form-control" id="pu_ht" name="pu_ht" 
+                                       value="{{ reception.prix_unitaire_ht or 0 }}" required>
+                                <div class="form-text">Prix unitaire HT</div>
+                            </div>
+                            
+                            <!-- Taux TVA -->
+                            <div class="col-md-3 mb-3">
+                                <label for="taux_tva" class="form-label">Taux TVA (%) <span class="text-danger">*</span></label>
+                                <select class="form-select" id="taux_tva" name="taux_tva" required>
+                                    <option value="20" {{ 'selected' if reception.taux_tva == 20 }}>20%</option>
+                                    <option value="14" {{ 'selected' if reception.taux_tva == 14 }}>14%</option>
+                                    <option value="10" {{ 'selected' if reception.taux_tva == 10 }}>10%</option>
+                                    <option value="7" {{ 'selected' if reception.taux_tva == 7 }}>7%</option>
+                                    <option value="0" {{ 'selected' if reception.taux_tva == 0 }}>0% (Exonéré)</option>
+                                </select>
+                                <div class="form-text">Taux de TVA</div>
+                            </div>
+                            
+                            <!-- Prix Unitaire TTC (calculé) -->
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">P.U TTC (DH)</label>
+                                <input type="text" class="form-control" id="pu_ttc_display" readonly
+                                       style="background-color: #e9ecef; font-weight: 600; color: #0d6efd;"
+                                       value="{{ '%.2f'|format(reception.prix_unitaire_ttc or 0) }} DH">
+                                <div class="form-text">Calculé automatiquement</div>
+                            </div>
+                            
+                            <!-- Prix Total HT (calculé) -->
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">P.T HT (DH)</label>
+                                <input type="text" class="form-control" id="pt_ht_display" readonly
+                                       style="background-color: #e9ecef; font-weight: 600; color: #198754;"
+                                       value="{{ '%.2f'|format(reception.prix_total_ht or 0) }} DH">
+                                <div class="form-text">Total HT</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- Prix Total TTC (calculé) - MISE EN ÉVIDENCE -->
+                            <div class="col-md-12">
+                                <div class="alert alert-success mb-0" style="background: linear-gradient(135deg, rgba(25, 135, 84, 0.15) 0%, rgba(32, 201, 151, 0.15) 100%); border: 2px solid #198754; border-radius: 8px;">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="fas fa-money-bill-wave me-2" style="color: #198754; font-size: 1.3rem;"></i>
+                                            <strong style="font-size: 1.1rem; color: #198754;">Prix Total TTC:</strong>
+                                        </div>
+                                        <div>
+                                            <span id="pt_ttc_display" style="font-size: 1.8rem; font-weight: 900; color: #198754;">{{ '%.2f'|format(reception.prix_total_ttc or 0) }} DH</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Attention:</strong> La modification de cette réception ajustera automatiquement le stock de l'article et les données budgétaires.
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('receptions') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Retour
+                        </a>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-save me-2"></i>Enregistrer les Modifications
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Succès Modification -->
+<div class="modal fade" id="successEditModal" tabindex="-1" aria-hidden="true" style="position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; z-index: 999999 !important; display: none;">
+    <div class="modal-dialog modal-dialog-centered" style="z-index: 1000000 !important; position: relative;">
+        <div class="modal-content" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 15px; box-shadow: 0 10px 40px rgba(40, 167, 69, 0.4); border: none; overflow: hidden; position: relative; z-index: 1000001 !important;">
+            <!-- En-tête -->
+            <div style="background: rgba(0, 0, 0, 0.15); padding: 15px 25px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="color: #fff; font-size: 1.1rem; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-check-circle" style="margin-right: 10px; animation: iconPulse 2s ease-in-out infinite;"></i>RÉCEPTION MODIFIÉE
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <!-- Corps -->
+            <div style="padding: 25px 30px 20px 30px; color: #fff;">
+                <!-- Message principal -->
+                <div style="text-align: center; margin-bottom: 20px; font-size: 1rem; line-height: 1.6; font-weight: 500;">
+                    <div style="font-size: 1.2rem; margin-bottom: 8px;">✓ Modification enregistrée avec succès</div>
+                    <div style="opacity: 0.9;">Les données de la réception ont été mises à jour</div>
+                </div>
+                
+                <!-- Carte Article -->
+                <div style="background: rgba(255, 255, 255, 0.15); padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.25);">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-box" style="font-size: 1.3rem; opacity: 0.9;"></i>
+                        <div style="flex: 1;">
+                            <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 2px;">Article</div>
+                            <div style="font-size: 1.1rem; font-weight: 700;" id="editedReceptionArticle">{{ reception.item.name }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Détails des modifications -->
+                <div style="background: rgba(255, 255, 255, 0.15); padding: 12px 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(255, 255, 255, 0.25);">
+                    <div style="font-size: 0.9rem; line-height: 1.6;" id="editedReceptionDetails">
+                        <!-- Rempli dynamiquement par JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Info finale -->
+                <div style="background: rgba(0, 0, 0, 0.2); padding: 12px 15px; border-radius: 8px; font-size: 0.9rem; text-align: center; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <i class="fas fa-info-circle me-2"></i>Le stock et les données budgétaires ont été ajustés
+                </div>
+            </div>
+            
+            <!-- Pied de page -->
+            <div style="background: rgba(0, 0, 0, 0.15); padding: 15px 25px; display: flex; justify-content: space-between; gap: 15px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="flex: 1; padding: 10px 25px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; background: rgba(255, 255, 255, 0.95); border: none; color: #000; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.3s ease;">
+                    <i class="fas fa-times me-2"></i>Fermer
+                </button>
+                <a href="{{ url_for('receptions') }}" class="btn btn-warning" style="flex: 1; padding: 10px 25px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; background: #ffc107; border: none; color: #000; box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4); text-transform: uppercase; letter-spacing: 0.5px; text-decoration: none; text-align: center; transition: all 0.3s ease;">
+                    <i class="fas fa-list me-2"></i>Voir Réceptions
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script pour afficher le modal -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+    {% for category, message in messages %}
+        {% if category == 'success' and 'modifiée' in message %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        const messageText = '{{ message|safe }}';
+        const modalElement = document.getElementById('successEditModal');
+        
+        // Extraction des détails depuis le message
+        const parts = messageText.split('|');
+        if (parts.length > 1) {
+            const details = parts.slice(1).join('<br>').trim();
+            document.getElementById('editedReceptionDetails').innerHTML = details;
+        }
+        
+        // Créer un backdrop personnalisé
+        const customBackdrop = document.createElement('div');
+        customBackdrop.id = 'customModalBackdrop';
+        customBackdrop.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 999998; display: block;';
+        document.body.appendChild(customBackdrop);
+        
+        // Afficher le modal manuellement (sans Bootstrap backdrop)
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+        modalElement.style.zIndex = '999999';
+        
+        // Fermer le modal au clic sur backdrop
+        customBackdrop.addEventListener('click', function() {
+            closeModal();
+        });
+        
+        // Fermer le modal au clic sur bouton fermer
+        const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"]');
+        closeButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                closeModal();
+            });
+        });
+        
+        function closeModal() {
+            modalElement.style.display = 'none';
+            modalElement.classList.remove('show');
+            if (customBackdrop && customBackdrop.parentNode) {
+                customBackdrop.parentNode.removeChild(customBackdrop);
+            }
+        }
+    }, 100);
+});
+</script>
+        {% endif %}
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+<!-- Styles pour les animations -->
+<style>
+@keyframes iconPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Force z-index pour le modal et backdrop - VALEURS TRÈS ÉLEVÉES */
+#successEditModal {
+    z-index: 999999 !important;
+}
+
+#successEditModal.show {
+    z-index: 999999 !important;
+}
+
+.modal-backdrop {
+    z-index: 999998 !important;
+    opacity: 0.5 !important;
+}
+
+.modal-backdrop.show {
+    z-index: 999998 !important;
+    opacity: 0.5 !important;
+}
+
+#successEditModal .modal-dialog {
+    z-index: 1000000 !important;
+}
+
+#successEditModal .modal-content {
+    animation: modalSlideIn 0.3s ease-out;
+    z-index: 1000001 !important;
+    position: relative;
+}
+
+#successEditModal .btn-light:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+#successEditModal .btn-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 193, 7, 0.5);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const quantityInput = document.getElementById('quantity');
+    const puHtInput = document.getElementById('pu_ht');
+    const tauxTvaSelect = document.getElementById('taux_tva');
+    const puTtcDisplay = document.getElementById('pu_ttc_display');
+    const ptHtDisplay = document.getElementById('pt_ht_display');
+    const ptTtcDisplay = document.getElementById('pt_ttc_display');
+    
+    // Fonction pour calculer les prix
+    function calculatePrices() {
+        const quantity = parseFloat(quantityInput.value) || 0;
+        const puHt = parseFloat(puHtInput.value) || 0;
+        const tauxTva = parseFloat(tauxTvaSelect.value) || 0;
+        
+        // Calculs
+        const puTtc = puHt * (1 + tauxTva / 100);
+        const ptHt = puHt * quantity;
+        const ptTtc = puTtc * quantity;
+        
+        // Affichage
+        puTtcDisplay.value = puTtc.toFixed(2) + ' DH';
+        ptHtDisplay.value = ptHt.toFixed(2) + ' DH';
+        ptTtcDisplay.textContent = ptTtc.toFixed(2) + ' DH';
+        
+        // Animation sur le total TTC
+        ptTtcDisplay.style.animation = 'pulse 0.3s ease-in-out';
+        setTimeout(() => {
+            ptTtcDisplay.style.animation = '';
+        }, 300);
+    }
+    
+    // Écouter les changements
+    quantityInput.addEventListener('input', calculatePrices);
+    puHtInput.addEventListener('input', calculatePrices);
+    tauxTvaSelect.addEventListener('change', calculatePrices);
+    
+    // Calcul initial
+    calculatePrices();
+});
+</script>
+{% endblock %}

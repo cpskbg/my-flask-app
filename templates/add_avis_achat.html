@@ -1,0 +1,674 @@
+{% extends "base.html" %}
+
+{% block title %}Nouvel Avis d'Achat - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Style moderne pour les cases à cocher */
+    .form-check {
+        position: relative;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        border-radius: 0.5rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background-color: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    .form-check:hover {
+        background-color: rgba(30, 64, 175, 0.05);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    .form-check-input {
+        width: 1.25rem;
+        height: 1.25rem;
+        margin-top: 0.25rem;
+        margin-right: 0.5rem;
+        background-color: #fff;
+        border: 2px solid #cbd5e1;
+        border-radius: 0.35rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .form-check-input:checked {
+        background-color: #1e40af;
+        border-color: #1e40af;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10l3 3l6-6'/%3e%3c/svg%3e");
+    }
+    
+    .form-check-input:focus {
+        box-shadow: 0 0 0 0.25rem rgba(30, 64, 175, 0.25);
+        border-color: #1e40af;
+    }
+    
+    .form-check-label {
+        cursor: pointer;
+        user-select: none;
+        padding-left: 0.5rem;
+        font-weight: 500;
+        color: #1e293b;
+        transition: all 0.2s ease;
+    }
+    
+    .form-check:hover .form-check-label {
+        color: #1e40af;
+    }
+    
+    .form-check-input:checked ~ .form-check-label {
+        color: #1e40af;
+        font-weight: 600;
+    }
+    
+    /* Animation de sélection */
+    @keyframes checkmark {
+        0% { transform: scale(0.8); opacity: 0.7; }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .form-check-input:checked {
+        animation: checkmark 0.3s ease-out;
+    }
+    
+    /* Style pour la sélection multiple */
+    .form-check-input:checked + .form-check-label::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, rgba(30, 64, 175, 0.05) 0%, rgba(30, 64, 175, 0.02) 100%);
+        z-index: -1;
+        border-radius: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%); padding: 1.5rem; border-bottom: 3px solid #0dcaf0;">
+                    <h4 class="mb-0" style="font-weight: 700; font-size: 1.5rem; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); letter-spacing: 0.5px;">
+                        <i class="fas fa-file-invoice me-2" style="font-size: 1.6rem; vertical-align: middle;"></i>
+                        Créer un Nouvel Avis d'Achat
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form autocomplete="off" method="POST" action="{{ url_for('add_avis_achat') }}" id="avisAchatForm">
+                        <!-- Section 1: Nature de Prestation (Sélection Multiple) -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-tag me-2"></i>
+                                    1. Natures de Prestation <span class="badge bg-primary">Sélection Multiple</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                
+                                <div class="row">
+                                    <!-- Catégories principales -->
+                                    <div class="col-md-12">
+                                        <label class="form-label fw-bold" style="font-size: 1.1rem;">
+                                            Catégories Principales <span class="text-danger">*</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        {% for nature in all_budget_natures %}
+                                            {% if nature != 'Entretien bâtiments administratifs' %}
+                                            {% set icon_class = '' %}
+                                            {% if 'Fournitures pour le matériel informatique' in nature %}
+                                                {% set icon_class = 'fa-desktop text-info' %}
+                                            {% elif 'Alimentation à usage Humaine' in nature %}
+                                                {% set icon_class = 'fa-utensils text-warning' %}
+                                            {% elif 'Fournitures de bureaux et documentation' in nature %}
+                                                {% set icon_class = 'fa-folder-open text-primary' %}
+                                            {% elif "Produits d'hygiène et de désinfection" in nature %}
+                                                {% set icon_class = 'fa-pump-soap text-success' %}
+                                            {% else %}
+                                                {% set icon_class = 'fa-tag text-secondary' %}
+                                            {% endif %}
+                                            <div class="form-check form-check-inline mb-3 me-3">
+                                                <input class="form-check-input" type="checkbox" 
+                                                       name="natures[]" value="{{ nature }}" 
+                                                       id="nature_dyn_{{ loop.index }}">
+                                                <label class="form-check-label" for="nature_dyn_{{ loop.index }}">
+                                                    <i class="fas {{ icon_class }} me-1"></i> {{ nature }}
+                                                </label>
+                                            </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <!-- Entretien bâtiments administratifs - Non cliquable -->
+                                        <div class="form-check mb-2">
+                                            <div class="d-flex align-items-center" style="padding: 0.5rem 0;">
+                                                <i class="fas fa-tools me-2" style="color: #fd7e14; font-size: 1.1rem;"></i>
+                                                <span class="fw-bold" style="color: #1e40af;">Entretien Bâtiments Administratifs</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Sous-catégories d'entretien -->
+                                        <div class="form-check mb-2 ms-4">
+                                            <input class="form-check-input nature-checkbox" type="checkbox" 
+                                                   name="natures[]" value="Articles de plomberies" 
+                                                   id="nature_plomberie">
+                                            <label class="form-check-label" for="nature_plomberie">
+                                                <i class="fas fa-faucet me-1 text-info"></i> Articles de plomberies
+                                            </label>
+                                        </div>
+                                        
+                                        <div class="form-check mb-2 ms-4">
+                                            <input class="form-check-input nature-checkbox" type="checkbox" 
+                                                   name="natures[]" value="Articles électriques" 
+                                                   id="nature_electricite">
+                                            <label class="form-check-label" for="nature_electricite">
+                                                <i class="fas fa-bolt me-1 text-warning"></i> Articles électriques
+                                            </label>
+                                        </div>
+                                        
+                                        <div class="form-check mb-2 ms-4">
+                                            <input class="form-check-input nature-checkbox" type="checkbox" 
+                                                   name="natures[]" value="Articles de la peinture" 
+                                                   id="nature_peinture">
+                                            <label class="form-check-label" for="nature_peinture">
+                                                <i class="fas fa-paint-roller me-1 text-primary"></i> Articles de la peinture
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <span class="badge bg-secondary" id="selectedCount">0 nature(s) sélectionnée(s)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Sélection des Articles -->
+                        <div class="card mb-4" id="articlesSection" style="display: none;">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-boxes me-2"></i>
+                                    2. Sélection des Articles
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Boutons de sélection en masse -->
+                                <div class="row mb-3 align-items-center">
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center">
+                                            <span id="selectedCountBadge" class="badge bg-primary me-2">0 sélectionné(s)</span>
+                                            <div id="selectionLoading" class="spinner-border spinner-border-sm text-primary d-none" role="status">
+                                                <span class="visually-hidden">Chargement...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex justify-content-end gap-2">
+                                            <button type="button" id="selectAllBtn" class="btn btn-sm btn-outline-primary position-relative" 
+                                                    title="Sélectionner tous les articles (Ctrl+A)"
+                                                    aria-label="Sélectionner tous les articles">
+                                                <i class="fas fa-check-square me-1"></i> Tout
+                                            </button>
+                                            <button type="button" id="invertSelectionBtn" class="btn btn-sm btn-outline-secondary"
+                                                    title="Inverser la sélection"
+                                                    aria-label="Inverser la sélection">
+                                                <i class="fas fa-exchange-alt me-1"></i> Inverser
+                                            </button>
+                                            <button type="button" id="deselectAllBtn" class="btn btn-sm btn-outline-danger"
+                                                    title="Tout désélectionner"
+                                                    aria-label="Tout désélectionner"
+                                                    disabled>
+                                                <i class="fas fa-times-circle me-1"></i> Aucun
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="articlesContainer">
+                                    <!-- Les articles seront chargés ici dynamiquement -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 3: Informations Complémentaires -->
+                        <div class="card mb-4" id="infoSection" style="display: none;">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    3. Informations Complémentaires
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="delai_execution" class="form-label">
+                                            Délai d'Exécution (jours) <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="number" class="form-control" id="delai_execution" 
+                                               name="delai_execution" placeholder="Ex: 30" min="1" required>
+                                        <div class="form-text">Nombre de jours pour l'exécution</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="date_limite_reception" class="form-label">
+                                            Date Limite de Réception <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="date_limite_reception" 
+                                                   name="date_limite_reception" placeholder="JJ/MM/AAAA" required>
+                                            <button class="btn btn-outline-secondary" type="button" id="datePickerBtn" style="border-color: #ced4da;" aria-label="Choisir une date">
+                                                <i class="fas fa-calendar-alt"></i>
+                                            </button>
+                                        </div>
+                                        <div class="form-text">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Cliquez sur l'icône calendrier ou tapez la date (JJ/MM/AAAA)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Boutons d'action -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('avis_achats') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                                <i class="fas fa-check me-2"></i>Créer l'Avis d'Achat
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.article-item {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.article-item:hover {
+    border-color: #0d6efd;
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
+}
+
+.article-item.selected {
+    border-color: #28a745;
+    background-color: rgba(40, 167, 69, 0.05);
+}
+
+.article-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.quantity-input {
+    max-width: 120px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const apiEndpointTemplate = "{{ url_for('get_items_by_category', category='CATEGORY_PLACEHOLDER') }}";
+
+    const natureCheckboxes = document.querySelectorAll('input[name="natures[]"]');
+    const selectedCount = document.getElementById('selectedCount');
+    const articlesSection = document.getElementById('articlesSection');
+    const infoSection = document.getElementById('infoSection');
+    const articlesContainer = document.getElementById('articlesContainer');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const deselectAllBtn = document.getElementById('deselectAllBtn');
+    const invertSelectionBtn = document.getElementById('invertSelectionBtn');
+    const selectedCountBadge = document.getElementById('selectedCountBadge');
+    const selectionLoading = document.getElementById('selectionLoading');
+
+    const state = {
+        selectedNatures: new Set(),
+        selectedArticles: new Set(),
+        loadedArticles: new Map(),
+    };
+
+    function toggleArticleUI(articleId, isChecked) {
+        const articleDiv = document.getElementById(`article-${articleId}`);
+        if (!articleDiv) return;
+
+        const fields = articleDiv.querySelectorAll('input[type="number"], select, textarea');
+        
+        if (isChecked) {
+            state.selectedArticles.add(articleId);
+            articleDiv.classList.add('selected');
+            fields.forEach(field => {
+                field.disabled = false;
+                field.required = (field.name.startsWith('quantite_') || field.name.startsWith('unite_'));
+                if (field.name.startsWith('quantite_') && !field.value) {
+                    field.value = '1';
+                }
+            });
+        } else {
+            state.selectedArticles.delete(articleId);
+            articleDiv.classList.remove('selected');
+            fields.forEach(field => {
+                field.disabled = true;
+                field.required = false;
+                if (field.type === 'number') field.value = '';
+            });
+        }
+    }
+
+    function updateSelectionUI() {
+        const visibleCheckboxes = articlesContainer.querySelectorAll('.article-checkbox:not(:disabled)');
+        const checkedCount = state.selectedArticles.size;
+        const totalCount = visibleCheckboxes.length;
+
+        selectedCountBadge.textContent = `${checkedCount} sélectionné(s)`;
+        selectedCountBadge.className = `badge ${checkedCount > 0 ? 'bg-primary' : 'bg-secondary'}`;
+
+        deselectAllBtn.disabled = checkedCount === 0;
+        selectAllBtn.disabled = totalCount > 0 && checkedCount === totalCount;
+        invertSelectionBtn.disabled = totalCount === 0;
+        submitBtn.disabled = checkedCount === 0;
+    }
+
+    function renderArticles() {
+        if (state.selectedNatures.size === 0) {
+            articlesSection.style.display = 'none';
+            infoSection.style.display = 'none';
+            articlesContainer.innerHTML = '';
+            updateSelectionUI();
+            return;
+        }
+
+        articlesSection.style.display = 'block';
+        infoSection.style.display = 'block';
+        
+        let html = '';
+        state.selectedNatures.forEach(nature => {
+            const items = state.loadedArticles.get(nature) || [];
+            if (items.length > 0) {
+                html += renderNatureGroup(nature, items);
+            }
+        });
+
+        articlesContainer.innerHTML = html || `
+            <div class="alert alert-warning text-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Aucun article disponible pour les catégories sélectionnées.
+            </div>`;
+        
+        updateSelectionUI();
+    }
+
+    async function loadAndRenderArticles() {
+        const naturesToLoad = [...state.selectedNatures].filter(nature => !state.loadedArticles.has(nature));
+        console.log('Natures à charger:', naturesToLoad);
+        console.log('State actuel:', state);
+
+        if (naturesToLoad.length > 0) {
+            articlesContainer.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Chargement des articles...</p></div>';
+            
+            try {
+                const results = await Promise.all(naturesToLoad.map(async (nature) => {
+                    try {
+                        const url = apiEndpointTemplate.replace('CATEGORY_PLACEHOLDER', encodeURIComponent(nature));
+                        console.log(`Chargement des articles pour ${nature} depuis:`, url);
+                        
+                        const response = await fetch(url);
+                        console.log(`Réponse pour ${nature}:`, response);
+                        
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error(`Erreur HTTP ${response.status} pour ${nature}:`, errorText);
+                            throw new Error(`Erreur HTTP ${response.status}: ${errorText}`);
+                        }
+                        
+                        const data = await response.json();
+                        console.log(`Données reçues pour ${nature}:`, data);
+                        
+                        if (data.success && Array.isArray(data.items)) {
+                            console.log(`Articles chargés pour ${nature}:`, data.items);
+                            state.loadedArticles.set(nature, data.items);
+                            return { success: true };
+                        } else {
+                            console.error('Format de réponse inattendu pour', nature, ':', data);
+                            return { 
+                                success: false, 
+                                error: `Format de réponse inattendu pour ${nature}` 
+                            };
+                        }
+                    } catch (error) {
+                        console.error(`Erreur lors du chargement des articles pour ${nature}:`, error);
+                        return { 
+                            success: false, 
+                            error: `Erreur pour ${nature}: ${error.message}` 
+                        };
+                    }
+                }));
+
+                // Vérifier s'il y a eu des erreurs
+                const hasErrors = results.some(result => !result.success);
+                console.log('Résultats du chargement:', { results, hasErrors });
+                
+                if (hasErrors) {
+                    const errorMessages = results
+                        .filter(r => !r.success)
+                        .map(r => r.error || 'Erreur inconnue')
+                        .join('<br>');
+                    
+                    console.error('Erreurs de chargement:', errorMessages);
+                    
+                    const successCount = results.filter(r => r.success).length;
+                    if (successCount > 0) {
+                        // Afficher les erreurs mais continuer avec les chargements réussis
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'alert alert-warning mb-3';
+                        errorDiv.innerHTML = `
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Des erreurs sont survenues lors du chargement de certaines catégories :
+                            <div class="mt-2">${errorMessages}</div>
+                        `;
+                        articlesContainer.prepend(errorDiv);
+                    } else {
+                        // Tous les chargements ont échoué
+                        articlesContainer.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Erreur lors du chargement des catégories :
+                                <div class="mt-2">${errorMessages}</div>
+                            </div>`;
+                        return;
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Erreur inattendue dans loadAndRenderArticles:', error);
+                articlesContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Une erreur inattendue est survenue : ${error.message}
+                        <div class="mt-2">Veuillez vérifier la console pour plus de détails.</div>
+                    </div>`;
+                return;
+            }
+        }
+        
+        console.log('Appel à renderArticles avec state:', state);
+        renderArticles();
+    }
+
+    natureCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                state.selectedNatures.add(this.value);
+            } else {
+                state.selectedNatures.delete(this.value);
+                const articlesToDeselect = (state.loadedArticles.get(this.value) || []).map(item => item.id.toString());
+                articlesToDeselect.forEach(id => state.selectedArticles.delete(id));
+            }
+            selectedCount.textContent = `${state.selectedNatures.size} nature(s) sélectionnée(s)`;
+            loadAndRenderArticles();
+        });
+    });
+
+    articlesContainer.addEventListener('change', function(e) {
+        if (e.target.classList.contains('article-checkbox')) {
+            const articleId = e.target.value;
+            toggleArticleUI(articleId, e.target.checked);
+            updateSelectionUI();
+        }
+    });
+
+    async function performBulkSelection(action) {
+        const checkboxes = Array.from(articlesContainer.querySelectorAll('.article-checkbox:not(:disabled)'));
+        if (checkboxes.length === 0) return;
+
+        selectionLoading.classList.remove('d-none');
+        [selectAllBtn, deselectAllBtn, invertSelectionBtn].forEach(btn => btn.disabled = true);
+
+        await new Promise(resolve => requestAnimationFrame(() => {
+            checkboxes.forEach(checkbox => {
+                let newState;
+                if (action === 'select') newState = true;
+                else if (action === 'deselect') newState = false;
+                else if (action === 'invert') newState = !checkbox.checked;
+
+                if (checkbox.checked !== newState) {
+                    checkbox.checked = newState;
+                    toggleArticleUI(checkbox.value, newState);
+                }
+            });
+            resolve();
+        }));
+
+        updateSelectionUI();
+        selectionLoading.classList.add('d-none');
+    }
+
+    selectAllBtn.addEventListener('click', () => performBulkSelection('select'));
+    deselectAllBtn.addEventListener('click', () => performBulkSelection('deselect'));
+    invertSelectionBtn.addEventListener('click', () => performBulkSelection('invert'));
+
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'a' && articlesSection.style.display === 'block') {
+            e.preventDefault();
+            performBulkSelection('select');
+        }
+    });
+
+    flatpickr("#date_limite_reception", {
+        altInput: true,
+        altFormat: "d/m/Y",
+        dateFormat: "Y-m-d",
+        minDate: "today",
+        locale: {
+            firstDayOfWeek: 1,
+            weekdays: {
+                shorthand: ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"],
+                longhand: ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"],
+            },
+            months: {
+                shorthand: ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"],
+                longhand: ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"],
+            },
+        },
+        onReady: function(selectedDates, dateStr, instance) {
+            const datePickerBtn = document.getElementById('datePickerBtn');
+            if (datePickerBtn) {
+                datePickerBtn.addEventListener('click', function() {
+                    instance.open();
+                });
+            }
+        }
+    });
+
+    natureCheckboxes.forEach(cb => { if (cb.checked) state.selectedNatures.add(cb.value); });
+    if (state.selectedNatures.size > 0) {
+        selectedCount.textContent = `${state.selectedNatures.size} nature(s) sélectionnée(s)`;
+        loadAndRenderArticles();
+    }
+
+    function renderNatureGroup(nature, items) {
+        const icons = {
+            'Fournitures de bureaux et documentation': { icon: 'fa-folder-open', color: '#0d6efd' },
+            "Produits d'hygiène et de désinfection": { icon: 'fa-soap', color: '#198754' },
+            'Fournitures pour le matériel informatique': { icon: 'fa-laptop', color: '#6f42c1' },
+            'Articles de plomberies': { icon: 'fa-wrench', color: '#fd7e14' },
+            'Articles électriques': { icon: 'fa-bolt', color: '#ffc107' },
+            'Articles de la peinture': { icon: 'fa-paint-roller', color: '#0dcaf0' },
+            'Alimentation à usage Humaine': { icon: 'fa-utensils', color: '#dc3545' },
+        };
+        const style = icons[nature] || { icon: 'fa-tag', color: '#6c757d' };
+
+        const itemsHtml = items.map(item => {
+            const isSelected = state.selectedArticles.has(item.id.toString());
+            const disabled = isSelected ? '' : 'disabled';
+            const required = (field) => isSelected && (field === 'quantite' || field === 'unite') ? 'required' : '';
+            const value = (field) => isSelected && field === 'quantite' ? 'value="1"' : '';
+
+            return `
+            <div class="col-md-12">
+                <div class="article-item ${isSelected ? 'selected' : ''}" id="article-${item.id}" data-item-id="${item.id}">
+                    <input type="hidden" name="nature_${item.id}" value="${nature}">
+                    <div class="row align-items-center">
+                        <div class="col-md-1 text-center">
+                            <input type="checkbox" class="article-checkbox form-check-input" name="selected_items[]" value="${item.id}" ${isSelected ? 'checked' : ''}>
+                        </div>
+                        <div class="col-md-4"><strong>${item.name}</strong><br><small class="text-muted">SKU: ${item.sku}</small></div>
+                        <div class="col-md-2">
+                            <label class="form-label mb-1">Quantité</label>
+                            <input type="number" class="form-control quantity-input" name="quantite_${item.id}" min="1" placeholder="0" ${disabled} ${required('quantite')} ${value('quantite')}>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label mb-1">Unité <span class="text-danger">*</span></label>
+                            <select class="form-select" name="unite_${item.id}" ${required('unite')} ${disabled}>
+                                ${['Unité', 'Lot', 'Paquet', 'Mètre', 'Boîte', 'Ramette', 'Kg', 'Litre'].map(u => `<option value="${u}" ${item.unit === u ? 'selected' : ''}>${u}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label mb-1">Garanties</label>
+                            <input type="text" class="form-control" name="garanties_${item.id}" placeholder="Ex: 1 an" ${disabled}>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-12">
+                            <label class="form-label mb-1">Caractéristiques et Spécifications</label>
+                            <textarea class="form-control" name="caracteristiques_${item.id}" rows="2" placeholder="Voir désignation" ${disabled}></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+
+        return `
+            <div class="nature-group mb-4">
+                <h6 class="border-bottom pb-2 mb-3" style="color: ${style.color};">
+                    <i class="fas ${style.icon} me-2"></i>${nature}
+                    <span class="badge ms-2" style="background-color: ${style.color};">${items.length} article(s)</span>
+                </h6>
+                <div class="row">${itemsHtml}</div>
+            </div>`;
+    }
+});
+ </script>
+
+{% endblock %}
+
+{% block scripts %}{% endblock %}

@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+
+{% block title %}Modifier Avis d'Achat - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-edit me-2"></i>Modifier Avis d'Achat</h2>
+            <p class="text-muted mb-0">Numéro : <strong>{{ avis.numero_avis }}</strong></p>
+        </div>
+        <a href="{{ url_for('avis_achats') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Retour à la Liste
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informations de l'Avis</h5>
+                </div>
+                <div class="card-body">
+                    <form autocomplete="off" method="POST" id="editAvisForm">
+                        <!-- Informations non modifiables -->
+                        <div class="alert alert-info">
+                            <strong><i class="fas fa-lock me-2"></i>Informations verrouillées :</strong>
+                            <ul class="mb-0 mt-2">
+                                <li><strong>Numéro :</strong> {{ avis.numero_avis }}</li>
+                                <li><strong>Nature de Prestation :</strong> {{ avis.nature_prestation }}</li>
+                                <li><strong>Date de création :</strong> {{ format_datetime(avis.date_creation, '%d/%m/%Y à %H:%M') }}</li>
+                            </ul>
+                        </div>
+
+                        <!-- Objet de la prestation (auto-généré) -->
+                        <div class="mb-3">
+                            <label for="objet_prestation" class="form-label">
+                                Objet de la Prestation <span class="text-danger">*</span>
+                                <small class="text-muted">(Auto-généré)</small>
+                            </label>
+                            <textarea class="form-control" id="objet_prestation" name="objet_prestation" rows="3" readonly style="background-color: #f8f9fa;">{{ avis.objet_prestation }}</textarea>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Généré automatiquement : "Achat de [Nature] pour les services du Commandement Provincial de la Protection Civile de Sidi Kacem."
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Articles avec quantités modifiables -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="fas fa-boxes me-2"></i>Articles de l'Avis
+                                <span class="badge bg-secondary">{{ avis.items|length }}</span>
+                            </label>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm">
+                                    <thead class="table-light">
+                                        <tr style="text-align: center; vertical-align: middle;">
+                                            <th style="text-align: center; vertical-align: middle;">N°</th>
+                                            <th style="text-align: center; vertical-align: middle;">Désignation</th>
+                                            <th style="text-align: center; vertical-align: middle;">Unité</th>
+                                            <th style="text-align: center; vertical-align: middle;">Quantité</th>
+                                            <th style="text-align: center; vertical-align: middle;">Caractéristiques</th>
+                                            <th style="text-align: center; vertical-align: middle;">Garanties</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for avis_item in avis.items %}
+                                        <tr>
+                                            <td style="text-align: center; vertical-align: middle;">{{ loop.index }}</td>
+                                            <td style="text-align: center; vertical-align: middle;">
+                                                <strong>{{ avis_item.item.name }}</strong>
+                                                <input type="hidden" name="item_ids[]" value="{{ avis_item.id }}">
+                                            </td>
+                                            <td style="text-align: center; vertical-align: middle;">{{ avis_item.item.unit }}</td>
+                                            <td style="text-align: center; vertical-align: middle;">
+                                                <input type="number" 
+                                                       class="form-control form-control-sm text-center" 
+                                                       name="quantites[]" 
+                                                       value="{{ avis_item.quantite }}" 
+                                                       min="1" 
+                                                       required
+                                                       style="margin: 0 auto;">
+                                            </td>
+                                            <td style="text-align: center; vertical-align: middle;">
+                                                <input type="text" 
+                                                       class="form-control form-control-sm text-center" 
+                                                       name="caracteristiques[]" 
+                                                       value="{{ avis_item.caracteristiques or '' }}" 
+                                                       placeholder="Optionnel">
+                                            </td>
+                                            <td style="text-align: center; vertical-align: middle;">
+                                                <input type="text" 
+                                                       class="form-control form-control-sm text-center" 
+                                                       name="garanties[]" 
+                                                       value="{{ avis_item.garanties or '' }}" 
+                                                       placeholder="Optionnel">
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Informations complémentaires modifiables -->
+                        <h6 class="mb-3"><i class="fas fa-calendar-alt me-2"></i>Informations Complémentaires</h6>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="delai_execution" class="form-label">
+                                    Délai d'Exécution (jours) <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="delai_execution" 
+                                       name="delai_execution" 
+                                       value="{{ avis.delai_execution or '' }}" 
+                                       min="1" 
+                                       required
+                                       placeholder="Ex: 15">
+                                <div class="form-text">Nombre de jours pour l'exécution</div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="date_limite_reception" class="form-label">
+                                    Date Limite de Réception <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="date_limite_reception" 
+                                       name="date_limite_reception" 
+                                       value="{% if avis.date_limite_reception %}{% if avis.date_limite_reception is string %}{{ avis.date_limite_reception }}{% else %}{{ format_datetime(avis.date_limite_reception, '%d/%m/%Y') }}{% endif %}{% endif %}" 
+                                       pattern="\d{2}/\d{2}/\d{4}"
+                                       placeholder="JJ/MM/AAAA"
+                                       required>
+                                <div class="form-text">Format : JJ/MM/AAAA (Ex: 15/02/2025)</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="lieu_execution" class="form-label">
+                                Lieu d'Exécution <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="lieu_execution" 
+                                   name="lieu_execution" 
+                                   value="{{ avis.lieu_execution }}" 
+                                   readonly
+                                   style="background-color: #f8f9fa;"
+                                   required>
+                            <div class="form-text">
+                                <i class="fas fa-lock me-1"></i>
+                                Champ verrouillé (valeur fixe)
+                            </div>
+                        </div>
+
+                        <!-- Boutons d'action -->
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save me-2"></i>Enregistrer les Modifications
+                            </button>
+                            <a href="{{ url_for('avis_achats') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Annuler
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panneau d'aide -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-question-circle me-2"></i>Aide</h6>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-primary">Éléments Modifiables</h6>
+                    <ul class="small">
+                        <li><strong>Quantités</strong> : Ajustez les quantités des articles</li>
+                        <li><strong>Caractéristiques</strong> : Précisez les spécifications</li>
+                        <li><strong>Garanties</strong> : Indiquez les garanties exigées</li>
+                        <li><strong>Délai d'Exécution</strong> : Nombre de jours</li>
+                        <li><strong>Date Limite</strong> : Date de réception des devis (DD/MM/YYYY)</li>
+                    </ul>
+
+                    <hr>
+
+                    <h6 class="text-danger">Éléments Verrouillés</h6>
+                    <ul class="small">
+                        <li><strong>Numéro d'Avis</strong> : Non modifiable</li>
+                        <li><strong>Nature de Prestation</strong> : Non modifiable</li>
+                        <li><strong>Articles</strong> : Liste non modifiable</li>
+                        <li><strong>Objet</strong> : Auto-généré</li>
+                        <li><strong>Lieu d'Exécution</strong> : Valeur fixe</li>
+                    </ul>
+
+                    <hr>
+
+                    <div class="alert alert-warning small mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Note :</strong> Les modifications seront appliquées au PDF lors de la prochaine génération.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statut actuel -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Statut Actuel</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>Statut :</strong>
+                        {% if avis.statut == 'brouillon' %}
+                        <span class="badge bg-secondary">Brouillon</span>
+                        {% elif avis.statut == 'publie' %}
+                        <span class="badge bg-success">Publié</span>
+                        {% elif avis.statut == 'archive' %}
+                        <span class="badge bg-info">Archivé</span>
+                        {% endif %}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Créé par :</strong> {{ avis.user.name if avis.user else 'Système' }}
+                    </div>
+                    <div>
+                        <strong>Créé le :</strong> {{ format_datetime(avis.date_creation, '%d/%m/%Y à %H:%M') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Succès -->
+<div class="modal fade" id="successEditModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 15px; box-shadow: 0 10px 40px rgba(255, 165, 0, 0.3); background: linear-gradient(135deg, #ff9800 0%, #ff6b35 100%); color: #fff; position: fixed; z-index: 9999;">
+            <!-- En-tête -->
+            <div class="modal-header" style="border-bottom: 2px solid rgba(255, 255, 255, 0.3); background: rgba(0, 0, 0, 0.15); padding: 20px 25px;">
+                <h4 class="modal-title w-100 text-center" style="font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+                    <i class="fas fa-check-circle me-2" style="font-size: 2.5rem; animation: iconPulse 2s ease-in-out infinite;"></i><br>
+                    Avis d'Achat Modifié avec Succès
+                </h4>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <!-- Corps -->
+            <div class="modal-body text-center" style="padding: 25px;">
+                <p style="font-size: 1.1rem; margin-bottom: 20px;">
+                    L'avis d'achat a été modifié et son statut est passé en <strong>BROUILLON</strong>
+                </p>
+                
+                <!-- Badge Numéro -->
+                <div style="background: rgba(255, 255, 255, 0.2); border-radius: 10px; padding: 15px; margin-bottom: 15px; backdrop-filter: blur(10px);">
+                    <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 5px;">
+                        <i class="fas fa-file-invoice me-1"></i> NUMÉRO D'AVIS
+                    </div>
+                    <div style="font-size: 1.5rem; font-weight: 700; letter-spacing: 1px;" id="editedAvisNum"></div>
+                </div>
+                
+                <!-- Détails -->
+                <div style="background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 12px; font-size: 0.95rem;">
+                    <span id="editedAvisDetails"></span>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="modal-footer" style="border-top: 2px solid rgba(255, 255, 255, 0.3); background: rgba(0, 0, 0, 0.15); justify-content: center; padding: 15px 25px;">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="padding: 10px 30px; font-weight: 600; border-radius: 8px; transition: all 0.2s;">
+                    <i class="fas fa-check me-2"></i>OK
+                </button>
+                <a href="{{ url_for('avis_achats') }}" class="btn" style="background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); color: #333; padding: 10px 30px; font-weight: 600; border-radius: 8px; transition: all 0.2s;">
+                    <i class="fas fa-list me-2"></i>Voir la Liste
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+    {% for category, message in messages %}
+        {% if category == 'success' and 'Avis d\'achat modifié' in message %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        const messageText = '{{ message|safe }}';
+        const parts = messageText.split('|');
+        
+        // Extraction du numéro d'avis
+        if (parts.length > 1) {
+            const numero = parts[1].trim();
+            document.getElementById('editedAvisNum').textContent = numero;
+        }
+        
+        // Extraction des détails (Statut + Articles)
+        if (parts.length > 2) {
+            const details = parts.slice(2).join(' | ').trim();
+            document.getElementById('editedAvisDetails').textContent = details;
+        }
+        
+        // Afficher le modal
+        const modalElement = document.getElementById('successEditModal');
+        const successModal = new bootstrap.Modal(modalElement, {
+            backdrop: 'static',
+            keyboard: true
+        });
+        successModal.show();
+        
+        // Ajuster z-index
+        setTimeout(function() {
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                backdrop.style.zIndex = '9998';
+            }
+            modalElement.style.zIndex = '9999';
+        }, 50);
+    }, 100);
+});
+</script>
+        {% endif %}
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+<style>
+/* Animation pour le modal de succès */
+#successEditModal .modal-content {
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Animation de l'icône */
+#successEditModal .fa-check-circle {
+    animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+/* Effet hover sur les boutons */
+#successEditModal .modal-footer .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Backdrop avec flou */
+.modal-backdrop.show {
+    backdrop-filter: blur(3px);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('editAvisForm');
+    const dateLimiteInput = document.getElementById('date_limite_reception');
+    
+    // Auto-formatage de la date DD/MM/YYYY
+    if (dateLimiteInput) {
+        dateLimiteInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, ''); // Supprimer tout sauf les chiffres
+            
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2);
+            }
+            if (value.length >= 5) {
+                value = value.substring(0, 5) + '/' + value.substring(5, 9);
+            }
+            
+            e.target.value = value;
+        });
+        
+        // Validation à la sortie du champ
+        dateLimiteInput.addEventListener('blur', function(e) {
+            const value = e.target.value;
+            if (value && value.length === 10) {
+                const parts = value.split('/');
+                const day = parseInt(parts[0]);
+                const month = parseInt(parts[1]);
+                const year = parseInt(parts[2]);
+                
+                if (day < 1 || day > 31 || month < 1 || month > 12 || year < 2025) {
+                    alert('Date invalide. Veuillez entrer une date valide au format JJ/MM/AAAA (à partir de 2025)');
+                    e.target.value = '';
+                }
+            }
+        });
+    }
+    
+    form.addEventListener('submit', function(e) {
+        // Validation basique
+        const quantites = document.querySelectorAll('input[name="quantites[]"]');
+        let valid = true;
+        
+        quantites.forEach(function(input) {
+            if (parseInt(input.value) < 1) {
+                valid = false;
+                input.classList.add('is-invalid');
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!valid) {
+            e.preventDefault();
+            alert('Toutes les quantités doivent être supérieures ou égales à 1.');
+        }
+    });
+});
+</script>
+{% endblock %}

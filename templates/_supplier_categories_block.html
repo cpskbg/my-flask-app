@@ -1,0 +1,108 @@
+{# Bloc partagé: Catégories de Services pour add_supplier et edit_supplier #}
+<style>
+    .supplier-category-container {
+        max-height: 320px;
+        overflow-y: auto;
+    }
+
+    .supplier-category-pill .form-check-input,
+    .supplier-subcategory-pill .form-check-input {
+        position: absolute;
+        opacity: 0;
+    }
+
+    .supplier-category-pill .form-check-label,
+    .supplier-subcategory-pill .form-check-label {
+        cursor: pointer;
+        border-radius: 999px;
+        padding: 0.35rem 0.85rem;
+        border: 1px solid var(--cat-color, #dee2e6);
+        background-color: #f8f9fa;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        white-space: nowrap;
+        color: var(--cat-color, #495057);
+    }
+
+    .supplier-category-pill .form-check-input:checked + .form-check-label {
+        background-color: var(--cat-color, #0d6efd);
+        border-color: var(--cat-color, #0d6efd);
+        color: #fff;
+        box-shadow: 0 0.25rem 0.5rem rgba(13,110,253,0.25);
+    }
+
+    .supplier-subcategory-pill .form-check-label {
+        font-size: 0.8rem;
+        background-color: #fdfdfe;
+        border-color: rgba(0, 0, 0, 0.05);
+        color: var(--cat-color, #6c757d);
+    }
+
+    .supplier-subcategory-pill .form-check-input:checked + .form-check-label {
+        background-color: var(--cat-color, #6c757d);
+        border-color: var(--cat-color, #6c757d);
+        color: #fff;
+        box-shadow: 0 0.2rem 0.4rem rgba(33, 37, 41, 0.25);
+    }
+</style>
+
+<div class="mb-4">
+    <div class="d-flex align-items-center mb-2">
+        <h5 class="mb-0"><i class="fas fa-tags me-2"></i>Catégories de Services</h5>
+        <span class="badge bg-light text-muted border ms-2">Sélection multiple possible</span>
+    </div>
+    <hr class="mt-2 mb-3">
+
+    <div class="card p-3 supplier-category-container">
+        {% set selected = selected_category_ids if selected_category_ids is defined else [] %}
+        {# Masquer les anciennes variantes de noms pour éviter les doublons #}
+        {% set hidden_names = [
+            'FOURNITURES DE BUREAU ET DOCUMENTATION',
+            'FOURNITURES POUR MATÉRIEL INFORMATIQUE'
+        ] %}
+        {% set hidden_child_names = [
+            "Articles d'électricité",
+            'Articles de peinture'
+        ] %}
+
+        {# Couleur par grande famille de catégories #}
+        {% set color_map = {
+            'ENTRETIEN DES BÂTIMENTS ADMINISTRATIFS': '#fd7e14',
+            'FOURNITURES DE BUREAUX ET DOCUMENTATION': '#0d6efd',
+            'FOURNITURES POUR LE MATÉRIEL INFORMATIQUE': '#6f42c1',
+            "PRODUITS D'HYGIÈNE ET DE DÉSINFECTION": '#198754'
+        } %}
+
+        <div class="d-flex flex-column gap-2">
+            {% for cat in toutes_les_categories if not cat.parent and cat.nom not in hidden_names %}
+                {% set cat_color = color_map.get(cat.nom, '#6c757d') %}
+                <div style="--cat-color: {{ cat_color }};">
+                    <div class="form-check supplier-category-pill mb-1">
+                        <input class="form-check-input" type="checkbox" name="categories" value="{{ cat.id }}" id="cat_{{ cat.id }}"
+                               {{ 'checked' if cat.id in selected else '' }}>
+                        <label class="form-check-label" for="cat_{{ cat.id }}">
+                            <i class="fas fa-folder-open"></i>
+                            {{ cat.nom }}
+                        </label>
+                    </div>
+
+                    {% if cat.children %}
+                        <div class="ms-4 d-flex flex-wrap gap-1">
+                            {% for child in cat.children if child.nom not in hidden_child_names %}
+                            <div class="form-check supplier-subcategory-pill">
+                                <input class="form-check-input" type="checkbox" name="categories" value="{{ child.id }}" id="cat_{{ child.id }}"
+                                       {{ 'checked' if child.id in selected else '' }}>
+                                <label class="form-check-label" for="cat_{{ child.id }}">
+                                    {{ child.nom }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>

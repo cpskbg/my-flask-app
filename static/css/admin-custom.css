@@ -1,0 +1,694 @@
+/* ============================================================================
+   STYLES ADMIN - COHÉRENT AVEC LE DASHBOARD PRINCIPAL
+   Protection Civile - Style unifié
+   ============================================================================ */
+
+/* Variables de couleurs - Identiques au dashboard */
+:root {
+    --primary-blue: #1e3a8a;
+    --primary-blue-light: #2563eb;
+    --primary-gold: #fbbf24;
+    --primary-gold-dark: #f59e0b;
+    --success-green: #10b981;
+    --danger-red: #ef4444;
+    --gray-light: #f8fafc;
+    --gray-medium: #64748b;
+}
+
+/* Police système identique au dashboard */
+* {
+    font-family: 'Calibri', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Background identique au dashboard */
+body {
+    background: linear-gradient(135deg, #e6f3ff 0%, #cce7ff 25%, #b3dbff 50%, #cce7ff 75%, #e6f3ff 100%) !important;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+/* ============================================================================
+   NAVBAR PERSONNALISÉE
+   ============================================================================ */
+
+.navbar-default {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%) !important;
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(30, 58, 138, 0.15) !important;
+    min-height: 60px !important;
+}
+
+.navbar-default .navbar-brand {
+    color: white !important;
+    font-weight: 700 !important;
+    font-size: 1.3rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    padding: 15px 20px !important;
+}
+
+.navbar-default .navbar-brand i {
+    font-size: 1.5rem;
+    color: var(--primary-gold);
+}
+
+.navbar-default .navbar-nav > li > a {
+    color: rgba(255, 255, 255, 0.95) !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+    padding: 20px 15px !important;
+}
+
+.navbar-default .navbar-nav > li > a:hover {
+    color: var(--primary-gold) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.navbar-default .navbar-nav > li.active > a {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: white !important;
+}
+
+/* ============================================================================
+   SIDEBAR MENU - Style identique au dashboard
+   ============================================================================ */
+
+/* Sidebar container */
+.col-sm-2 {
+    background: #ffffff !important;
+    border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05) !important;
+    padding: 0 !important;
+    min-height: 100vh !important;
+    position: fixed !important;
+    left: 0 !important;
+    top: 60px !important;
+    width: 200px !important;
+    z-index: 100 !important;
+}
+
+.nav-sidebar {
+    background: transparent !important;
+    border: none !important;
+    padding: 1.5rem 0 !important;
+    margin: 0 !important;
+}
+
+/* Items du menu */
+.nav-sidebar > li > a {
+    color: #4a5568 !important;
+    font-weight: 500 !important;
+    font-size: 0.9rem !important;
+    padding: 12px 20px !important;
+    border-left: 3px solid transparent !important;
+    transition: all 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    text-decoration: none !important;
+    position: relative !important;
+}
+
+/* Icônes du menu */
+.nav-sidebar > li > a i {
+    width: 20px !important;
+    height: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1rem !important;
+    color: #fbbf24 !important;
+}
+
+/* Hover state */
+.nav-sidebar > li > a:hover {
+    background: rgba(251, 191, 36, 0.08) !important;
+    color: #1e3a8a !important;
+    border-left-color: #fbbf24 !important;
+}
+
+/* Active state */
+.nav-sidebar > li.active > a {
+    background: linear-gradient(90deg, rgba(251, 191, 36, 0.15) 0%, rgba(251, 191, 36, 0.05) 100%) !important;
+    color: #1e3a8a !important;
+    border-left-color: #fbbf24 !important;
+    font-weight: 600 !important;
+}
+
+/* Catégories (headers) */
+.nav-sidebar > li.dropdown-header {
+    color: #1e3a8a !important;
+    font-weight: 700 !important;
+    font-size: 0.7rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.5px !important;
+    padding: 20px 20px 10px !important;
+    margin-top: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    border-bottom: none !important;
+}
+
+.nav-sidebar > li.dropdown-header:first-child {
+    margin-top: 0 !important;
+    padding-top: 12px !important;
+}
+
+.nav-sidebar > li.dropdown-header i {
+    font-size: 0.9rem !important;
+    color: #fbbf24 !important;
+}
+
+/* ============================================================================
+   TABLES
+   ============================================================================ */
+
+.table {
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+    background: white !important;
+    margin-bottom: 0 !important;
+}
+
+.table thead th {
+    background: #f1f5f9 !important;
+    color: #1e3a8a !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.8px !important;
+    border: none !important;
+    padding: 14px 16px !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+}
+
+.table tbody tr {
+    transition: all 0.15s ease !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.table tbody tr:hover {
+    background: #f8fafc !important;
+}
+
+.table tbody tr:last-child {
+    border-bottom: none !important;
+}
+
+.table tbody td {
+    vertical-align: middle !important;
+    padding: 12px 16px !important;
+    border: none !important;
+    color: #475569 !important;
+    font-size: 0.9rem !important;
+}
+
+/* Actions dans les tables */
+.table tbody td .btn-group {
+    display: flex !important;
+    gap: 4px !important;
+}
+
+.table tbody td .btn-sm {
+    padding: 4px 8px !important;
+    font-size: 0.8rem !important;
+}
+
+/* ============================================================================
+   BOUTONS
+   ============================================================================ */
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 600 !important;
+    padding: 10px 20px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4) !important;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--success-green) 0%, #059669 100%) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 600 !important;
+    padding: 10px 20px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--danger-red) 0%, #dc2626 100%) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 600 !important;
+    padding: 10px 20px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-gold-dark) 100%) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 600 !important;
+    padding: 10px 20px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3) !important;
+}
+
+/* ============================================================================
+   FORMULAIRES
+   ============================================================================ */
+
+.form-control {
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    transition: all 0.3s ease !important;
+}
+
+.form-control:focus {
+    border-color: var(--primary-gold) !important;
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1) !important;
+}
+
+.form-group label {
+    color: var(--primary-blue) !important;
+    font-weight: 700 !important;
+    margin-bottom: 8px !important;
+}
+
+/* ============================================================================
+   PAGINATION
+   ============================================================================ */
+
+.pagination > li > a {
+    color: var(--primary-blue) !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    margin: 0 4px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+}
+
+.pagination > li > a:hover {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%) !important;
+    color: white !important;
+    border-color: var(--primary-blue) !important;
+}
+
+.pagination > li.active > a {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-gold-dark) 100%) !important;
+    color: white !important;
+    border-color: var(--primary-gold) !important;
+}
+
+/* ============================================================================
+   BADGES ET LABELS
+   ============================================================================ */
+
+.label-primary {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%) !important;
+    color: white !important;
+    padding: 6px 12px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+}
+
+.label-success {
+    background: linear-gradient(135deg, var(--success-green) 0%, #059669 100%) !important;
+    color: white !important;
+    padding: 6px 12px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+}
+
+.label-warning {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-gold-dark) 100%) !important;
+    color: white !important;
+    padding: 6px 12px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+}
+
+/* ============================================================================
+   ALERTS
+   ============================================================================ */
+
+.alert {
+    border-radius: 12px !important;
+    border: none !important;
+    padding: 16px 20px !important;
+    font-weight: 600 !important;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%) !important;
+    color: #065f46 !important;
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;
+    color: #991b1b !important;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+    color: #1e40af !important;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+    color: #92400e !important;
+}
+
+/* ============================================================================
+   PANELS
+   ============================================================================ */
+
+.panel {
+    border-radius: 12px !important;
+    border: none !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+    overflow: hidden !important;
+}
+
+.panel-heading {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%) !important;
+    color: white !important;
+    font-weight: 700 !important;
+    padding: 16px 20px !important;
+    border: none !important;
+}
+
+.panel-body {
+    padding: 20px !important;
+}
+
+/* ============================================================================
+   BREADCRUMB
+   ============================================================================ */
+
+.breadcrumb {
+    background: white !important;
+    border-radius: 12px !important;
+    padding: 12px 20px !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+}
+
+.breadcrumb > li + li:before {
+    content: "›" !important;
+    color: var(--primary-gold) !important;
+    font-weight: 700 !important;
+}
+
+/* ============================================================================
+   ACTIONS TOOLBAR
+   ============================================================================ */
+
+.btn-toolbar {
+    margin-bottom: 20px !important;
+}
+
+.btn-toolbar .btn {
+    margin-right: 10px !important;
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .navbar-default .navbar-brand {
+        font-size: 1.2rem !important;
+    }
+    
+    .stat-value {
+        font-size: 2rem !important;
+    }
+    
+    .admin-header {
+        padding: 1.5rem !important;
+    }
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.table tbody tr,
+.stat-card,
+.panel {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* ============================================================================
+   SCROLLBAR PERSONNALISÉE
+   ============================================================================ */
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-gold-dark) 100%);
+}
+
+/* ============================================================================
+   LAYOUT ET CONTENEURS
+   ============================================================================ */
+
+body {
+    background: #f8fafc !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
+
+.container-fluid {
+    padding: 0 !important;
+}
+
+/* Zone de contenu principale - identique au dashboard */
+.col-sm-10 {
+    background: transparent !important;
+    margin-left: 200px !important;
+    padding: 24px !important;
+    min-height: 100vh !important;
+    margin-top: 60px !important;
+}
+
+/* Wrapper de contenu */
+.container-fluid > .row {
+    margin: 0 !important;
+}
+
+/* Wrapper pour les tables */
+.model-list {
+    background: white !important;
+    border-radius: 8px !important;
+    padding: 0 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+    margin-bottom: 24px !important;
+}
+
+/* Header de page */
+.page-header {
+    background: white !important;
+    padding: 20px 24px !important;
+    border-radius: 8px !important;
+    margin-bottom: 24px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+    border-left: 4px solid var(--primary-blue) !important;
+}
+
+.page-header h1 {
+    color: var(--primary-blue) !important;
+    font-size: 1.75rem !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+}
+
+/* Toolbar actions */
+.btn-toolbar {
+    background: white !important;
+    padding: 16px 24px !important;
+    border-radius: 8px 8px 0 0 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* Pagination */
+.pagination-wrapper {
+    background: white !important;
+    padding: 16px 24px !important;
+    border-radius: 0 0 8px 8px !important;
+    border-top: 1px solid #e2e8f0 !important;
+}
+
+/* Filtres et recherche */
+.filter-container {
+    background: white !important;
+    padding: 16px 24px !important;
+    border-radius: 8px !important;
+    margin-bottom: 16px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Badges de statut */
+.badge {
+    padding: 4px 10px !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    font-size: 0.75rem !important;
+}
+
+.badge-success {
+    background: #10b981 !important;
+    color: white !important;
+}
+
+.badge-danger {
+    background: #ef4444 !important;
+    color: white !important;
+}
+
+.badge-warning {
+    background: #f59e0b !important;
+    color: white !important;
+}
+
+.badge-info {
+    background: #3b82f6 !important;
+    color: white !important;
+}
+
+/* Liste vide */
+.empty-state {
+    text-align: center !important;
+    padding: 60px 20px !important;
+    color: #94a3b8 !important;
+}
+
+.empty-state i {
+    font-size: 4rem !important;
+    margin-bottom: 16px !important;
+    color: #cbd5e1 !important;
+}
+
+.empty-state h3 {
+    color: #64748b !important;
+    font-weight: 600 !important;
+    margin-bottom: 8px !important;
+}
+
+.empty-state p {
+    color: #94a3b8 !important;
+    font-size: 0.95rem !important;
+}
+
+/* ============================================================================
+   CARTES ET WIDGETS - Style dashboard
+   ============================================================================ */
+
+/* Cartes statistiques */
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid #fbbf24;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* Headers de section */
+.section-header {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid #1e3a8a;
+}
+
+.section-header h2 {
+    color: #1e3a8a;
+    font-weight: 700;
+    margin: 0;
+}
+
+/* Boutons style dashboard */
+.btn-dashboard {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}
+
+.btn-dashboard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+    color: white;
+}
+
+/* Liste avec puces dorées */
+.feature-list-gold {
+    list-style: none;
+    padding: 0;
+}
+
+.feature-list-gold li {
+    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.feature-list-gold li::before {
+    content: "✓";
+    color: #fbbf24;
+    font-weight: 700;
+    font-size: 1.2rem;
+}

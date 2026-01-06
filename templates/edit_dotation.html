@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}Modifier Dotation - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 p-3 rounded-3" style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 152, 0, 0.15) 100%); border: 1px solid rgba(255, 193, 7, 0.3);">
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);">
+            <i class="fas fa-edit" style="color: #fff; font-size: 1.4rem;"></i>
+        </div>
+        <div>
+            <h4 class="mb-0" style="font-weight: 700; color: #000;">Modifier Dotation</h4>
+            <small class="text-muted">{{ dotation.numero_dotation }}</small>
+        </div>
+    </div>
+    <a href="{{ url_for('dotations') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Retour
+    </a>
+</div>
+
+<!-- Informations de la dotation -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center" style="border-left: 4px solid #0dcaf0;">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">Unité</h6>
+                <h5 class="mb-0">{{ dotation.unite.nom }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center" style="border-left: 4px solid #6c757d;">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">Service</h6>
+                <h5 class="mb-0">{{ dotation.service.nom if dotation.service else 'Toute l\'unité' }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center" style="border-left: 4px solid #20c997;">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">Catégorie</h6>
+                <h5 class="mb-0" style="font-size: 0.9rem;">{{ dotation.categorie }}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center" style="border-left: 4px solid #ffc107;">
+            <div class="card-body">
+                <h6 class="text-muted mb-1">Statut</h6>
+                <h5 class="mb-0">
+                    {% if dotation.statut == 'en_cours' %}
+                        <span class="badge bg-warning">EN COURS</span>
+                    {% elif dotation.statut == 'validee' %}
+                        <span class="badge bg-success">VALIDÉE</span>
+                    {% elif dotation.statut == 'livree' %}
+                        <span class="badge bg-info">LIVRÉE</span>
+                    {% endif %}
+                </h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Formulaire de modification -->
+<form autocomplete="off" method="POST">
+    <div class="card">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0"><i class="fas fa-box me-2"></i>Articles Dotés</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 10%;">SKU</th>
+                            <th style="width: 30%;">Article</th>
+                            <th style="width: 15%;">Quantité</th>
+                            <th style="width: 15%;">Prix Unitaire (MAD)</th>
+                            <th style="width: 15%;">Coût Total (MAD)</th>
+                            <th style="width: 15%;">Unité</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dotation_item in dotation.items %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-primary">{{ dotation_item.item.sku }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ dotation_item.item.name }}</strong>
+                                {% if dotation_item.item.description %}
+                                <br><small class="text-muted">{{ dotation_item.item.description }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <input type="number" 
+                                       class="form-control quantity-input" 
+                                       name="quantity_{{ dotation_item.id }}" 
+                                       value="{{ dotation_item.quantite_dotee }}" 
+                                       min="1" 
+                                       data-item-id="{{ dotation_item.id }}"
+                                       required>
+                            </td>
+                            <td>
+                                <input type="number" 
+                                       class="form-control price-input" 
+                                       name="price_{{ dotation_item.id }}" 
+                                       value="{{ dotation_item.prix_unitaire }}" 
+                                       min="0" 
+                                       step="0.01"
+                                       data-item-id="{{ dotation_item.id }}"
+                                       required>
+                            </td>
+                            <td>
+                                <div class="alert alert-info mb-0 py-2 total-cost" 
+                                     id="total_{{ dotation_item.id }}"
+                                     style="font-weight: 700;">
+                                    {{ (dotation_item.quantite_dotee * dotation_item.prix_unitaire)|round(2) }} MAD
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ dotation_item.item.unit }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="4" class="text-end"><strong>COÛT TOTAL DE LA DOTATION:</strong></td>
+                            <td colspan="2">
+                                <div class="alert alert-success mb-0 py-2" style="font-weight: 700; font-size: 1.1rem;" id="grand-total">
+                                    {{ dotation.cout_total_dotation|round(2) }} MAD
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-warning btn-lg">
+            <i class="fas fa-save me-2"></i>Enregistrer les Modifications
+        </button>
+        <a href="{{ url_for('dotations') }}" class="btn btn-secondary btn-lg">
+            <i class="fas fa-times me-2"></i>Annuler
+        </a>
+    </div>
+</form>
+
+<script>
+// Calcul automatique des coûts
+document.addEventListener('DOMContentLoaded', function() {
+    const quantityInputs = document.querySelectorAll('.quantity-input');
+    const priceInputs = document.querySelectorAll('.price-input');
+    
+    function updateCosts() {
+        let grandTotal = 0;
+        
+        document.querySelectorAll('.quantity-input').forEach(function(qtyInput) {
+            const itemId = qtyInput.dataset.itemId;
+            const priceInput = document.querySelector(`.price-input[data-item-id="${itemId}"]`);
+            const totalDiv = document.getElementById(`total_${itemId}`);
+            
+            const quantity = parseFloat(qtyInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            const total = quantity * price;
+            
+            totalDiv.textContent = total.toFixed(2) + ' MAD';
+            grandTotal += total;
+        });
+        
+        document.getElementById('grand-total').textContent = grandTotal.toFixed(2) + ' MAD';
+    }
+    
+    // Écouter les changements
+    quantityInputs.forEach(input => input.addEventListener('input', updateCosts));
+    priceInputs.forEach(input => input.addEventListener('input', updateCosts));
+    
+    // Calcul initial
+    updateCosts();
+});
+</script>
+
+<style>
+.quantity-input, .price-input {
+    font-weight: 600;
+    text-align: center;
+}
+
+.quantity-input:focus, .price-input:focus {
+    border-color: #ffc107;
+    box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+}
+
+.total-cost {
+    text-align: center;
+    font-size: 0.95rem;
+}
+
+#grand-total {
+    text-align: center;
+}
+
+/* Styles pour le modal de succès */
+#successModal {
+    z-index: 9999;
+}
+
+#successModal .modal-dialog {
+    z-index: 10000;
+}
+
+.modal-backdrop {
+    z-index: 9998 !important;
+}
+</style>
+
+<!-- Modal de succès -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border-radius: 12px; box-shadow: 0 10px 40px rgba(40, 167, 69, 0.4); border: none; overflow: hidden;">
+            <div style="background: rgba(0, 0, 0, 0.15); padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                <h5 style="color: #fff; font-size: 0.95rem; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="fas fa-check-circle me-2"></i> Modification réussie
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer" style="opacity: 0.8;"></button>
+            </div>
+            <div style="padding: 20px 25px 15px 25px; color: #fff;">
+                <div style="margin-bottom: 15px; font-size: 1rem;">
+                    La dotation a été modifiée avec succès.
+                </div>
+                <div style="background: rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 10px; margin-bottom: 15px; text-align: center;">
+                    <div style="font-size: 0.8rem; margin-bottom: 5px; color: rgba(255, 255, 255, 0.9);">
+                        <i class="fas fa-gift me-2"></i> Dotation
+                    </div>
+                    <div id="successDotationNum" style="font-size: 1.1rem; font-weight: 700; letter-spacing: 0.5px;">
+                        {{ dotation.numero_dotation }}
+                    </div>
+                </div>
+                <div style="background: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 10px; font-size: 0.85rem; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Unité :</span>
+                        <strong>{{ dotation.unite.nom }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Date de modification :</span>
+                        <strong>{{ format_datetime(now(), '%d/%m/%Y %H:%M') }}</strong>
+                    </div>
+                </div>
+            </div>
+            <div style="background: rgba(0, 0, 0, 0.15); padding: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal" style="min-width: 100px;">
+                    <i class="fas fa-check me-1"></i> OK
+                </button>
+                <a href="{{ url_for('dotations') }}" class="btn btn-warning btn-sm" style="min-width: 100px;">
+                    <i class="fas fa-list me-1"></i> Voir les dotations
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            {% if category == 'success' and 'modifiée' in message %}
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        setTimeout(function() {
+                            const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                            successModal.show();
+                        }, 300);
+                    });
+                </script>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+{% endblock %}

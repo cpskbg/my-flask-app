@@ -1,0 +1,629 @@
+{% extends "base.html" %}
+
+{% block title %}Connexion - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --primary: #1e88e5;
+        --primary-dark: #0a4d8c;
+        --secondary: #42a5f5;
+        --success: #10b981;
+        --warning: #ff6b35;
+        --danger: #e53935;
+        --info: #29b6f6;
+        --dark: #1e293b;
+        --light: #f8fafc;
+        --emergency-red: #d32f2f;
+        --emergency-orange: #ff6b35;
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+        overflow-x: hidden;
+    }
+
+    .login-background {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #1a0000 0%, #4a0000 30%, #8b0000 60%, #2d0000 100%);
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        overflow: hidden;
+    }
+
+    .login-background::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(ellipse at top center, rgba(255, 69, 0, 0.3) 0%, transparent 60%),
+                    radial-gradient(ellipse at bottom left, rgba(220, 20, 60, 0.2) 0%, transparent 50%);
+        pointer-events: none;
+    }
+
+    .login-background::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M 100 0 L 0 0 0 100" fill="none" stroke="white" stroke-width="0.5" opacity="0.1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grid)"/></svg>');
+        animation: gridMove 20s linear infinite;
+    }
+
+    @keyframes gridMove {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(100px, 100px); }
+    }
+
+    .floating-shapes {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        z-index: 1;
+    }
+
+    .shape {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(60px);
+        opacity: 0.3;
+        animation: float 20s ease-in-out infinite;
+    }
+
+    .shape:nth-child(1) {
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(255, 69, 0, 0.4) 0%, transparent 70%);
+        top: -10%;
+        left: 50%;
+        transform: translateX(-50%);
+        animation-delay: 0s;
+        filter: blur(80px);
+    }
+
+    .shape:nth-child(2) {
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(220, 20, 60, 0.3) 0%, transparent 70%);
+        top: 50%;
+        right: 5%;
+        animation-delay: 5s;
+        filter: blur(70px);
+    }
+
+    .shape:nth-child(3) {
+        width: 250px;
+        height: 250px;
+        background: radial-gradient(circle, rgba(255, 140, 0, 0.25) 0%, transparent 70%);
+        bottom: 10%;
+        left: 10%;
+        animation-delay: 10s;
+        filter: blur(60px);
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        25% { transform: translate(50px, -50px) scale(1.1); }
+        50% { transform: translate(-30px, 30px) scale(0.9); }
+        75% { transform: translate(40px, 20px) scale(1.05); }
+    }
+
+    .login-container {
+        position: relative;
+        z-index: 10;
+        width: 100%;
+        max-width: 480px;
+    }
+
+    .login-card {
+        background: linear-gradient(135deg, rgba(20, 20, 20, 0.98) 0%, rgba(40, 10, 10, 0.98) 100%);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 2rem 2.5rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8),
+                    0 0 100px rgba(220, 20, 60, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(220, 20, 60, 0.3);
+        animation: slideUp 0.6s ease-out;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .login-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, 
+            transparent 0%, 
+            #dc143c 25%, 
+            #ff4500 50%, 
+            #dc143c 75%, 
+            transparent 100%);
+        background-size: 200% 100%;
+        animation: borderSlide 3s linear infinite;
+        box-shadow: 0 0 20px rgba(220, 20, 60, 0.8);
+    }
+
+    .login-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, 
+            transparent 0%, 
+            #ff4500 25%, 
+            #dc143c 50%, 
+            #ff4500 75%, 
+            transparent 100%);
+        background-size: 200% 100%;
+        animation: borderSlide 3s linear infinite reverse;
+        box-shadow: 0 0 20px rgba(255, 69, 0, 0.8);
+    }
+
+    @keyframes borderSlide {
+        0% { background-position: 0% 0%; }
+        100% { background-position: 200% 0%; }
+    }
+
+    .card-decoration {
+        position: absolute;
+        opacity: 0.05;
+        pointer-events: none;
+    }
+
+    .card-decoration.top-left {
+        top: -20px;
+        left: -20px;
+        font-size: 6rem;
+        color: #dc143c;
+        transform: rotate(-15deg);
+        text-shadow: 0 0 30px rgba(220, 20, 60, 0.5);
+    }
+
+    .card-decoration.bottom-right {
+        bottom: -20px;
+        right: -20px;
+        font-size: 6rem;
+        color: #ff4500;
+        transform: rotate(15deg);
+        text-shadow: 0 0 30px rgba(255, 69, 0, 0.5);
+    }
+
+    .card-decoration.center {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 15rem;
+        color: #8b0000;
+        opacity: 0.03;
+        text-shadow: 0 0 50px rgba(139, 0, 0, 0.3);
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .logo-section {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .logo-container {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        filter: drop-shadow(0 10px 30px rgba(30, 136, 229, 0.3));
+        animation: logoFloat 3s ease-in-out infinite;
+    }
+
+    @keyframes logoFloat {
+        0%, 100% { 
+            transform: translateY(0px);
+            filter: drop-shadow(0 10px 30px rgba(30, 136, 229, 0.3));
+        }
+        50% { 
+            transform: translateY(-8px);
+            filter: drop-shadow(0 15px 40px rgba(30, 136, 229, 0.5));
+        }
+    }
+
+    .logo-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        position: relative;
+        z-index: 2;
+        animation: logoGlow 2s ease-in-out infinite;
+    }
+
+    @keyframes logoGlow {
+        0%, 100% { 
+            filter: brightness(1);
+        }
+        50% { 
+            filter: brightness(1.1);
+        }
+    }
+
+    .logo-container .fallback-icon {
+        font-size: 4.5rem;
+        background: linear-gradient(135deg, #1e88e5 0%, #0a4d8c 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        position: relative;
+        z-index: 2;
+        filter: drop-shadow(0 4px 12px rgba(30, 136, 229, 0.4));
+    }
+
+    .app-title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #ffffff;
+        margin-bottom: 0.25rem;
+        line-height: 1.4;
+        text-shadow: 0 0 20px rgba(220, 20, 60, 0.8),
+                     0 0 40px rgba(255, 69, 0, 0.5),
+                     0 2px 10px rgba(0, 0, 0, 0.8);
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+    }
+
+    .app-title .line1 {
+        display: block;
+        font-size: 0.85rem;
+        color: #ffffff;
+        font-weight: 800;
+    }
+
+    .app-title .line2 {
+        display: block;
+        font-size: 0.85rem;
+        color: #ffffff;
+        font-weight: 800;
+        margin-top: 0.1rem;
+    }
+
+    .app-subtitle {
+        color: #ff6b6b;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 0;
+        text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+    }
+
+    .app-description {
+        display: none;
+    }
+
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .step-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        transition: all 0.3s ease;
+    }
+
+    .step-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgba(139, 0, 0, 0.5);
+        transition: all 0.3s ease;
+        border: 1px solid rgba(220, 20, 60, 0.3);
+    }
+
+    .step-dot.active {
+        width: 30px;
+        border-radius: 5px;
+        background: linear-gradient(135deg, #dc143c 0%, #8b0000 100%);
+        box-shadow: 0 0 15px rgba(220, 20, 60, 0.8),
+                    0 2px 8px rgba(220, 20, 60, 0.4);
+        border-color: #dc143c;
+    }
+
+    .form-section {
+        margin-bottom: 1rem;
+    }
+
+    .section-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.4rem 0.8rem;
+        background: linear-gradient(135deg, rgba(220, 20, 60, 0.2) 0%, rgba(139, 0, 0, 0.2) 100%);
+        border-radius: 10px;
+        margin-bottom: 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #ffb3b3;
+        border: 2px solid rgba(220, 20, 60, 0.4);
+    }
+
+    .section-badge i {
+        color: #ff6b6b;
+        font-size: 0.9rem;
+    }
+
+    .form-label {
+        display: none;
+    }
+
+    .custom-select {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #1e293b;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%231e88e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.85rem center;
+        background-size: 18px;
+        padding-right: 2.75rem;
+    }
+
+    .custom-select {
+        background: rgba(30, 30, 30, 0.8);
+        color: #ffffff;
+        border-color: rgba(220, 20, 60, 0.3);
+    }
+
+    .custom-select:focus {
+        outline: none;
+        border-color: #dc143c;
+        box-shadow: 0 0 0 4px rgba(220, 20, 60, 0.2),
+                    0 0 20px rgba(220, 20, 60, 0.3);
+    }
+
+    .custom-select:disabled {
+        background-color: #f8fafc;
+        cursor: not-allowed;
+    }
+
+    .input-group-custom {
+        position: relative;
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1rem;
+        color: #dc143c;
+        z-index: 2;
+        text-shadow: 0 0 10px rgba(220, 20, 60, 0.5);
+    }
+
+    .custom-input {
+        width: 100%;
+        padding: 0.85rem 1rem 0.85rem 3rem;
+        border: 2px solid rgba(220, 20, 60, 0.3);
+        border-radius: 10px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #ffffff;
+        background: rgba(30, 30, 30, 0.8);
+        transition: all 0.3s ease;
+    }
+
+    .custom-input::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    .custom-input:focus {
+        outline: none;
+        border-color: #dc143c;
+        box-shadow: 0 0 0 4px rgba(220, 20, 60, 0.2),
+                    0 0 20px rgba(220, 20, 60, 0.3);
+        background: rgba(40, 40, 40, 0.9);
+    }
+
+    .btn-login {
+        width: 100%;
+        padding: 0.9rem;
+        background: linear-gradient(135deg, #dc143c 0%, #8b0000 100%);
+        border: 2px solid #dc143c;
+        border-radius: 10px;
+        color: white;
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 30px rgba(220, 20, 60, 0.5),
+                    0 8px 25px rgba(220, 20, 60, 0.3);
+        position: relative;
+        overflow: hidden;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .btn-login::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+
+    .btn-login:hover::before {
+        width: 400px;
+        height: 400px;
+    }
+
+    .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0 40px rgba(220, 20, 60, 0.8),
+                    0 15px 40px rgba(220, 20, 60, 0.4);
+        border-color: #ff4500;
+    }
+
+    .btn-login:active {
+        transform: translateY(0);
+    }
+
+    .btn-login i {
+        margin-right: 0.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .btn-login span {
+        position: relative;
+        z-index: 1;
+    }
+
+    .selected-info {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.65rem 0.85rem;
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border: 2px solid #10b981;
+        border-radius: 10px;
+        margin-top: 0.75rem;
+        animation: slideIn 0.5s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .selected-info i {
+        font-size: 1.2rem;
+        color: #10b981;
+    }
+
+    .selected-text {
+        flex: 1;
+    }
+
+    .selected-label {
+        font-size: 0.65rem;
+        color: #059669;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .selected-value {
+        font-size: 0.85rem;
+        color: #065f46;
+        font-weight: 700;
+    }
+
+    .form-description {
+        color: rgba(255, 255, 255, 0.75);
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        line-height: 1.6;
+    }
+
+</style>
+
+<div class="login-background">
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+    <div class="login-container">
+        <div class="login-card">
+            <!-- Décorations thème Protection Civile -->
+            <i class="fas fa-shield-alt card-decoration top-left"></i>
+            <i class="fas fa-shield-alt card-decoration bottom-right"></i>
+            <i class="fas fa-shield-alt card-decoration center"></i>
+            
+            <div class="logo-section">
+                <div class="logo-container">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" 
+                         alt="Logo Protection Civile"
+                         onerror="this.style.display='none'; document.getElementById('fallback-logo-icon').style.display='block';">
+                    <i id="fallback-logo-icon" class="fas fa-shield-alt fallback-icon" style="display: none;"></i>
+                </div>
+                <h1 class="app-title">
+                    <span class="line1">Royaume du Maroc</span>
+                    <span class="line2">Ministère de l'Intérieur</span>
+                    <span class="line3">Direction Générale de la</span>
+                    <span class="line4">Protection Civile</span>
+                </h1>
+                <p class="app-subtitle">Gestion Intégrée des Dotations Annuelles</p>
+                <p class="app-description">Système d'authentification régionale</p>
+            </div>
+
+            <p class="form-description">Connexion centralisée contrôlée par le Super Administrateur. Utilisez votre email et mot de passe pour accéder aux fonctions autorisées.</p>
+
+            <form autocomplete="off" method="POST" id="loginForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                <div class="input-group-custom">
+                    <i class="fas fa-envelope input-icon"></i>
+                    <input type="email" name="email" class="custom-input" placeholder="Email professionnel" required autocomplete="username">
+                </div>
+
+                <div class="input-group-custom">
+                    <i class="fas fa-lock input-icon"></i>
+                    <input type="password" name="password" class="custom-input" placeholder="Mot de passe" required autocomplete="current-password">
+                </div>
+
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Connexion sécurisée</span>
+                </button>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

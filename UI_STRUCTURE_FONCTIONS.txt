@@ -1,0 +1,227 @@
+STRUCTURE UI & FONCTIONS PRINCIPALES
+====================================
+
+1) TEMPLATES (dossier templates/)
+---------------------------------
+
+- base.html
+  Layout global (navbar, sidebar, styles globaux).
+
+- login.html
+  Page de connexion.
+
+- dashboard.html
+  Tableau de bord principal (statistiques, historiques, logs d'audit).
+
+- items.html
+  Liste des articles avec pagination, filtres, actions (détails, suppression).
+
+- add_item.html
+  Formulaire d'ajout d'article.
+
+- edit_item.html
+  Formulaire de modification d'article.
+
+- low_stock.html
+  Liste des articles en rupture / stock bas + modal d'alerte.
+
+- receptions.html
+  Liste des réceptions de stock.
+
+- add_reception.html
+  Formulaire d'ajout / ajustement de stock.
+
+- edit_reception.html
+  Formulaire d'édition d'une réception.
+
+- dotations.html
+  Liste des dotations (sorties de stock) + modaux de succès.
+
+- add_dotation.html
+  Formulaire de création d'une dotation.
+
+- edit_dotation.html
+  Formulaire d'édition d'une dotation.
+
+- view_dotation.html
+  Détail d'une dotation.
+
+- suppliers.html
+  Page principale des fournisseurs (liste + actions).
+
+- add_supplier.html
+  Formulaire d'ajout d'un fournisseur.
+
+- edit_supplier.html
+  Formulaire de modification d'un fournisseur (statut + catégories).
+
+- avis_achats.html
+  Liste des avis d'achat.
+
+- add_avis_achat.html
+  Formulaire de création d'un avis d'achat (sélection natures + articles).
+
+- edit_avis_achat.html
+  Formulaire d'édition d'un avis d'achat.
+
+- engagements.html
+  Dashboard des engagements budgétaires (bons de commande / indemnités).
+
+- add_bon_commande.html
+  Formulaire d'ajout de bon de commande.
+
+- edit_bon_commande.html
+  Formulaire d'édition de bon de commande.
+
+- historique_budget.html
+  Historique des consommations pour un budget donné.
+
+- budget_details.html
+  Vue détaillée des budgets par nature / unité.
+
+- add_indemnites.html
+  Formulaire d'ajout des indemnités de déplacement.
+
+- import_items.html
+  Formulaire d'import Excel des articles.
+
+- export_form.html
+  Formulaire d'export (rapports / données).
+
+- admin_users.html
+  Gestion des utilisateurs (liste, filtres, suppression logique).
+
+- admin_create_user.html
+  Création d'utilisateur (par le super admin).
+
+- admin_edit_user.html
+  Édition d'utilisateur (rôles, permissions, mot de passe).
+
+- change_password.html
+  Changement de mot de passe pour l'utilisateur connecté.
+
+
+2) ROUTES FLASK PRINCIPALES (app.py)
+------------------------------------
+
+AUTHENTIFICATION & UTILISATEURS
+- GET  /                    -> redirige /login ou /dashboard
+- GET,POST /login           -> login.html (authentification)
+- GET  /logout              -> déconnexion + redirige /login
+- GET,POST /account/password -> change_password.html
+
+- GET  /admin/users         -> admin_users.html (liste utilisateurs)
+- GET,POST /admin/users/create -> admin_create_user.html
+- GET,POST /admin/users/<id>/edit -> admin_edit_user.html
+- POST /admin/users/delete/<id>           -> suppression logique
+- POST /admin/users/restore/<id>          -> restauration
+- POST /admin/users/delete-permanently/<id> -> suppression définitive
+
+DASHBOARD & BUDGETS
+- GET  /dashboard           -> dashboard.html
+- GET  /budget-details[/<annee>] -> budget_details.html
+- POST /admin/budget/<annee>/update -> mise à jour montants
+- GET  /export/budget-excel/<annee> -> export Excel
+- POST /admin/budget/reset         -> réinitialiser budget année courante
+- GET  /historique-budget/<budget_id> -> historique_budget.html
+
+ARTICLES & STOCK
+- GET  /items               -> items.html (liste paginée + recherche + filtres)
+- GET,POST /items/add       -> add_item.html
+- GET,POST /items/<id>/edit -> edit_item.html
+- POST /delete-item/<id>    -> suppression d'un article
+- POST /delete-items-multiple -> suppression multiple
+- POST /reset-all-quantities -> remise à zéro des quantités
+- POST /delete_all_items    -> suppression de tous les articles (admin)
+
+- GET  /low-stock           -> low_stock.html (stock bas)
+
+RÉCEPTIONS
+- GET  /receptions          -> receptions.html
+- GET,POST /add-reception   -> add_reception.html
+- GET,POST /edit-reception/<id> -> edit_reception.html
+- POST /import-receptions   -> import en masse (JSON/Excel)
+
+DOTATIONS
+- GET  /dotations           -> dotations.html
+- GET,POST /add-dotation    -> add_dotation.html
+- GET,POST /edit-dotation/<id> -> edit_dotation.html
+- GET  /view-dotation/<id>  -> view_dotation.html
+
+FOURNISSEURS
+- GET  /fournisseurs        -> suppliers.html
+- GET,POST /fournisseurs/ajouter -> add_supplier.html
+- GET,POST /fournisseurs/<id>/modifier -> edit_supplier.html
+- POST /fournisseurs/<id>/supprimer   -> suppression fournisseur
+
+AVIS D'ACHAT
+- GET  /avis-achats         -> avis_achats.html
+- GET,POST /avis-achats/ajouter -> add_avis_achat.html
+- GET,POST /avis-achats/<id>/modifier -> edit_avis_achat.html
+
+ENGAGEMENTS & BONS DE COMMANDE
+- GET  /engagements         -> engagements.html
+- GET,POST /add-bon-commande -> add_bon_commande.html
+- GET,POST /edit-bon-commande/<id> -> edit_bon_commande.html
+- POST /delete-bon-commande/<id>   -> suppression BC + restitution budget
+
+INDEMNITÉS DE DÉPLACEMENT
+- GET,POST /add-indemnites  -> add_indemnites.html
+
+IMPORT / EXPORT / OUTILS
+- GET  /download-template   -> génération modèle Excel d'import articles
+- GET,POST /import-items    -> import_items.html (upload de fichier)
+- GET  /export-form         -> export_form.html (selon votre implémentation)
+
+LOGIQUE TRANSVERSALE
+- Système de logs d'audit (create_audit_log)
+- Nettoyage automatique des logs d'audit (cleanup_old_audit_logs)
+- Initialisation des budgets (init_budgets)
+- Fonctions de normalisation SKU (generate_next_sku, reorganize_all_skus)
+- Gestion des droits/permissions (decorators @login_required, @admin_or_manager_required, etc.)
+
+Cette vue d'ensemble doit vous aider à comprendre rapidement :
+- quelles pages UI existent et où se trouvent leurs templates ;
+- quelles routes Flask principales composent le projet et à quelles pages elles sont liées.
+
+
+3) ROUTES ADMIN / MAINTENANCE / API (DÉTAILLÉ)
+----------------------------------------------
+
+ADMIN UTILISATEURS
+- GET  /admin/users                       -> admin_users.html (liste, filtres, pagination, utilisateurs supprimés)
+- GET  /admin/users/                      -> idem
+- GET,POST /admin/users/create            -> admin_create_user.html (création user, rôles, permissions)
+- GET,POST /admin/users/<user_id>/edit    -> admin_edit_user.html (édition infos, rôles, reset mot de passe)
+- POST /admin/users/delete/<user_id_param>          -> soft delete (is_deleted = True)
+- POST /admin/users/restore/<user_id>               -> restauration d'un user supprimé
+- POST /admin/users/delete-permanently/<user_id>    -> suppression définitive (hard delete)
+
+ADMIN BUDGETS / NETTOYAGE
+- POST /admin/budget/<annee>/update       -> mise à jour d'un budget existant (montants, années)
+- POST /admin/budget/reset                -> réinitialiser les budgets de l'année courante
+- POST /admin/receptions/duplicates/cleanup -> nettoyage des réceptions dupliquées
+- POST /admin/items/duplicates            -> list_item_duplicates (affichage des doublons d'articles)
+- POST /admin/items/duplicates/cleanup    -> cleanup_item_duplicates (suppression/merge des doublons)
+
+ADMIN / OUTILS IMPORT
+- POST /delete_all_items                  -> suppression de tous les articles (admin/manager uniquement)
+- POST /reset-all-quantities              -> remise à zéro des quantités en stock
+
+API (AJAX / JSON)
+- GET  /api/items                          -> JSON: liste de tous les articles (id, name, sku, quantity)
+- POST /api/items/<item_id>/update         -> JSON: mise à jour rapide d'un article (AJAX)
+- POST /api/check-duplicate                -> JSON: vérifie si un article existe déjà (nom + catégorie)
+- GET  /api/dotation/<dotation_id>/articles -> JSON: articles d'une dotation
+- POST /api/dotation/<dotation_id>/status  -> JSON: mise à jour du statut d'une dotation
+- GET  /api/services/<unite_id>            -> JSON: liste des services d'une unité (utilisé dans dotation)
+- GET  /api/items-by-category/<category>   -> JSON: articles filtrés par catégorie (utilisé dans avis d'achat)
+
+AUTRES ROUTES OUTILS / MAINTENANCE
+- GET  /download-template                  -> génère et renvoie un modèle Excel pour importation des articles
+- GET  /export/budget-excel/<annee>        -> génère un fichier Excel des budgets pour l'année donnée
+
+Ces routes "admin / maintenance / API" sont surtout utilisées par :
+- les pages d'administration (utilisateurs, budgets, nettoyages)
+- les scripts JavaScript (AJAX) pour charger dynamiquement des données (articles, services, catégories, etc.)
+

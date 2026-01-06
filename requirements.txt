@@ -1,0 +1,26 @@
+# Flask Core
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Werkzeug==2.3.7
+
+# Flask Extensions - Security & Admin
+Flask-Security-Too==5.3.2
+Flask-Admin==1.6.1
+Flask-WTF==1.2.1
+WTForms==3.1.1
+Flask-Login==0.6.3
+Flask-Principal==0.4.0
+Flask-Mail==0.9.1
+email-validator==2.1.0
+bcrypt==4.1.2
+
+# Database
+Flask-Migrate==4.0.5
+
+# Excel & PDF
+openpyxl==3.1.2
+reportlab==4.0.4
+WeasyPrint==60.1
+gunicorn==21.2.0
+arabic-reshaper==3.0.0
+python-bidi==0.4.2

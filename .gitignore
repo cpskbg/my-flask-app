@@ -1,0 +1,17 @@
+# Python byte‑code
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environnements virtuels
+venv/
+env/
+*.venv/
+*.env/
+
+# Base de données SQLite (si vous voulez la garder locale uniquement)
+*.db
+
+# Fichiers de configuration locaux
+instance/
+.env

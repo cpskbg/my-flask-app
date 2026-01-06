@@ -1,0 +1,736 @@
+{% extends 'base.html' %}
+
+{% block title %}Créer un Utilisateur - Administration{% endblock %}
+
+{% block extra_css %}
+<!-- SweetAlert2 CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --primary-color: #4338ca;
+        --secondary-color: #64748b;
+        --success-color: #10b981;
+        --bg-color: #f8fafc;
+        --card-bg: #ffffff;
+        --text-primary: #1e293b;
+        --text-secondary: #475569;
+        --border-color: #e2e8f0;
+        --radius: 16px;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--bg-color) !important;
+    }
+
+    /* Navbar adjustment - Floating effect */
+    .top-navbar {
+        margin: 1rem 2rem 0 2rem !important;
+        border-radius: 16px !important;
+    }
+
+    /* Content spacing */
+    .admin-container {
+        margin-top: 1rem !important;
+    }
+
+    /* Keep navbar visible */
+    /* Keep navbar visible */
+    /* .page-title removed */
+
+    .main-content {
+        background: transparent !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        display: block !important;
+    }
+
+    .admin-container {
+        padding: 0.5rem 2rem;
+        max-width: 900px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    /* Modern Header (Same as admin_users) */
+    .modern-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--card-bg);
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border-color);
+        border-top: 6px solid #4338ca;
+    }
+
+    .header-title h1 {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .user-badge {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.5rem 1rem;
+        background: #f1f5f9;
+        border-radius: 50px;
+        border: 1px solid var(--border-color);
+    }
+
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #4338ca, #3730a3);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .user-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        padding: 2.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border-color);
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        border: 2px solid var(--border-color);
+        border-radius: 12px;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        border-color: #4338ca;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(67, 56, 202, 0.1);
+    }
+
+    /* Password Toggle */
+    .password-input-group {
+        position: relative;
+    }
+
+    .password-toggle {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        border: none;
+        background: none;
+        color: var(--secondary-color);
+        cursor: pointer;
+        padding: 5px;
+    }
+
+    .password-toggle:hover {
+        color: #4338ca;
+    }
+
+    /* Role Cards */
+    .role-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .role-card {
+        cursor: pointer;
+        position: relative;
+    }
+
+    .role-card input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .role-content {
+        background: #ffffff;
+        border: 2px solid var(--border-color);
+        border-radius: 16px;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.2s;
+        height: 100%;
+    }
+
+    .role-card input:checked+.role-content {
+        border-color: #4338ca;
+        background: #f5f3ff;
+        box-shadow: 0 0 0 4px rgba(67, 56, 202, 0.1);
+    }
+
+    .role-icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        color: var(--secondary-color);
+    }
+
+    .role-card input:checked+.role-content .role-icon {
+        color: var(--primary-color);
+    }
+
+    .role-name {
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+    }
+
+    .role-desc {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        line-height: 1.4;
+    }
+
+    /* Modern Permissions Toggles */
+    .permissions-section {
+        background: #f8fafc;
+        padding: 2rem;
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+    }
+
+    .permissions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .permission-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 1rem 1.25rem;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+
+    .perm-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .perm-icon {
+        width: 38px;
+        height: 38px;
+        background: #f5f3ff;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #4338ca;
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+
+    .permission-item:hover .perm-icon {
+        background: #4338ca;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .perm-text div:first-child {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .perm-text div:last-child {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+    }
+
+    /* Switch CSS */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 48px;
+        height: 26px;
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #cbd5e1;
+        transition: .3s;
+        border-radius: 34px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 20px;
+        width: 20px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .3s;
+        border-radius: 50%;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    input:checked+.slider {
+        background-color: var(--primary-color);
+    }
+
+    input:checked+.slider:before {
+        transform: translateX(22px);
+    }
+
+    /* Buttons */
+    .form-actions {
+        margin-top: 2.5rem;
+        display: flex;
+        gap: 1rem;
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
+        color: white;
+        flex: 2;
+        padding: 1rem;
+        border: none;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(67, 56, 202, 0.35);
+    }
+
+    .btn-submit:hover {
+        background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px -1px rgba(79, 70, 229, 0.5);
+    }
+
+    .btn-cancel {
+        flex: 1;
+        padding: 1rem;
+        border-radius: 12px;
+        border: 2px solid #e2e8f0;
+        background: white;
+        text-align: center;
+        color: #475569;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-cancel:hover {
+        border-color: #cbd5e1;
+        background: #f8fafc;
+        color: #1e293b;
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <!-- Back Button -->
+    <div style="width: 100%; display: flex; justify-content: flex-start; margin-bottom: 0.5rem;">
+        <a href="{{ url_for('admin_users_list') }}" class="btn-cancel"
+            style="display: inline-flex; align-items: center; gap: 0.3rem; text-decoration: none; padding: 0.3rem 0.6rem; font-size: 0.75rem; border-radius: 6px; color: #4338ca; background: #f5f3ff; border: 1px solid rgba(67, 56, 202, 0.2); transition: all 0.2s; font-weight: 700; width: fit-content; flex: initial;">
+            <i class="fas fa-arrow-left" style="font-size: 0.7rem;"></i> Retour
+        </a>
+    </div>
+
+    <!-- Header -->
+    <div class="modern-header">
+        <div class="header-title">
+            <h1>
+                <span
+                    style="background: linear-gradient(135deg, #4338ca, #3730a3); color: white; border-radius: 12px; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(67, 56, 202, 0.3);">
+                    <i class="fas fa-user-plus"></i>
+                </span>
+                Créer un Nouvel Utilisateur
+            </h1>
+        </div>
+        <div class="user-badge" title="Connecté en tant que">
+            <div class="user-avatar">{{ current_user.name[0] if current_user.name else 'U' }}</div>
+            <span class="user-name">{{ current_user.name }}</span>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <form autocomplete="off" method="POST" class="form-card">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+            <label class="form-label">Nom complet <span style="color:red">*</span></label>
+            <input type="text" name="name" class="form-control" required placeholder="Ex: Sara El Mansouri"
+                value="{{ form_data.name if form_data else '' }}">
+            <small style="color: #64748b; font-size: 0.85rem; margin-top: 5px; display: block;">Prénom et nom de
+                l'utilisateur</small>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Email professionnel <span style="color:red">*</span></label>
+            <input type="email" name="email" class="form-control" required placeholder="agent@protectioncivile.ma"
+                value="{{ form_data.email if form_data else '' }}" pattern=".+@protectioncivile\.ma|.+@protection\.com"
+                title="L'email doit se terminer par @protectioncivile.ma ou @protection.com">
+        </div>
+
+
+
+        <div class="form-group">
+            <label class="form-label">Mot de passe <span style="color:red">*</span></label>
+            <div class="password-input-group">
+                <input type="password" name="password" class="form-control" required id="passwordInput" minlength="8"
+                    title="Le mot de passe doit contenir au moins 8 caractères">
+                <button type="button" class="password-toggle" onclick="togglePassword()">
+                    <i class="far fa-eye" id="toggleIcon"></i>
+                </button>
+            </div>
+            <small style="color: #64748b; font-size: 0.85rem; margin-top: 5px; display: block;">Au moins 8 caractères
+                recommandés</small>
+        </div>
+        {% if current_user.is_super_admin or current_user.role == 'admin' %}
+        <div class="form-group" id="region_selection_group">
+            <label class="form-label">Domaine de compétence (Région)</label>
+            <select name="region_id" class="form-control">
+                <option value="">-- Toutes les régions --</option>
+                {% for region in regions %}
+                <option value="{{ region.id }}" {% if (form_data and form_data.region_id|string==region.id|string) or
+                    (not form_data and current_user.region_id==region.id) %}selected{% endif %}>{{ region.nom }}
+                </option>
+                {% endfor %}
+            </select>
+            <small style="color: #64748b; font-size: 0.85rem; margin-top: 5px; display: block;">
+                Permet à un gestionnaire de gérer toutes les unités d'une région entière.
+            </small>
+        </div>
+        {% endif %}
+
+
+        <div class="form-group" id="unite_selection_group">
+            <label class="form-label">Domaine de compétence (Unité Provinciale)</label>
+            <select name="unite_id" class="form-control">
+                <option value="">-- Toutes les unités --</option>
+                {% for unite in unites %}
+                <option value="{{ unite.id }}" data-region-id="{{ unite.region_id }}" {% if (form_data and
+                    form_data.unite_id|string==unite.id|string) or (not form_data and current_user.unite_id==unite.id)
+                    %}selected{% endif %}>{{ unite.nom }}</option>
+                {% endfor %}
+            </select>
+            <small style="color: #64748b; font-size: 0.85rem; margin-top: 5px; display: block;">
+                Optionnel pour Admins, Recommandé pour Gestionnaires (limite la gestion à une unité provinciale et ses
+                centres).
+            </small>
+        </div>
+
+        <!-- Roles Selection -->
+        <h3 class="form-label" style="font-size: 1.1rem; margin-top: 2rem; margin-bottom: 1rem;">Sélection du Rôle</h3>
+        <div class="role-cards">
+            <label class="role-card">
+                <input type="radio" name="role" value="admin" {% if form_data and form_data.role=='admin' %}checked{%
+                    endif %}>
+                <div class="role-content">
+                    <div class="role-icon"><i class="fas fa-user-shield"></i></div>
+                    <div class="role-name">Administrateur</div>
+                    <div class="role-desc">Gestion complète des utilisateurs et configuration du système.</div>
+                </div>
+            </label>
+            <label class="role-card">
+                <input type="radio" name="role" value="gestionnaire" {% if form_data and form_data.role=='gestionnaire'
+                    %}checked{% endif %}>
+                <div class="role-content">
+                    <div class="role-icon"><i class="fas fa-user-tie"></i></div>
+                    <div class="role-name">Gestionnaire</div>
+                    <div class="role-desc">Gestion des stocks, réceptions et dotations courantes.</div>
+                </div>
+            </label>
+            <label class="role-card">
+                <input type="radio" name="role" value="user" {% if not form_data or form_data.role=='user' %}checked{%
+                    endif %}>
+                <div class="role-content">
+                    <div class="role-icon"><i class="fas fa-user"></i></div>
+                    <div class="role-name">Utilisateur</div>
+                    <div class="role-desc">Consultation et opérations de base autorisées.</div>
+                </div>
+            </label>
+            <label class="role-card">
+                <input type="radio" name="role" value="invite" {% if form_data and form_data.role=='invite' %}checked{%
+                    endif %}>
+                <div class="role-content">
+                    <div class="role-icon"><i class="fas fa-user-clock"></i></div>
+                    <div class="role-name">Invité</div>
+                    <div class="role-desc">Accès restreint en lecture seule sur certaines sections.</div>
+                </div>
+            </label>
+        </div>
+
+        {% if current_user.is_super_admin %}
+        <h3 class="form-label" style="font-size: 1.1rem; margin-top: 2rem; margin-bottom: 1rem;">Privilèges Spéciaux
+        </h3>
+        <div class="permissions-section" style="margin-bottom: 2rem; border-left: 5px solid #fbbf24;">
+            <div class="permissions-grid">
+                <div class="permission-item">
+                    <div class="perm-info">
+                        <div class="perm-icon" style="background: rgba(251, 191, 36, 0.1); color: #fbbf24;"><i
+                                class="fas fa-crown"></i></div>
+                        <div class="perm-text">
+                            <div style="color: #92400e;">Super Administrateur</div>
+                            <div>Accès total (peut gérer d'autres administrateurs)</div>
+                        </div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="is_super_admin" value="1">
+                        <span class="slider" style="background-color: #fbbf24;"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Modern Permissions -->
+        <h3 class="form-label" style="font-size: 1.1rem; margin-top: 2rem; margin-bottom: 1rem;">Permissions Spécifiques
+        </h3>
+        <div class="permissions-section">
+            <div class="permissions-grid">
+                <div class="permission-item">
+                    <div class="perm-info">
+                        <div class="perm-icon"><i class="fas fa-boxes"></i></div>
+                        <div class="perm-text">
+                            <div>Gestion Stock</div>
+                            <div>Créer/Modifier articles</div>
+                        </div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="permissions" value="stock">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="permission-item">
+                    <div class="perm-info">
+                        <div class="perm-icon"><i class="fas fa-truck-loading"></i></div>
+                        <div class="perm-text">
+                            <div>Réceptions</div>
+                            <div>Saisir entrées stock</div>
+                        </div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="permissions" value="receptions">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="permission-item">
+                    <div class="perm-info">
+                        <div class="perm-icon"><i class="fas fa-gift"></i></div>
+                        <div class="perm-text">
+                            <div>Dotations</div>
+                            <div>Gérer les dotations</div>
+                        </div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="permissions" value="dotations">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="permission-item">
+                    <div class="perm-info">
+                        <div class="perm-icon"><i class="fas fa-shopping-cart"></i></div>
+                        <div class="perm-text">
+                            <div>Avis d'Achat</div>
+                            <div>Créer des achats</div>
+                        </div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="permissions" value="avis_achat">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="permission-item">
+                    <div class="perm-info">
+                        <div class="perm-icon"><i class="fas fa-file-invoice"></i></div>
+                        <div class="perm-text">
+                            <div>Bons de Sortie</div>
+                            <div>Valider les sorties</div>
+                        </div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="permissions" value="bons_sortie">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="permission-item">
+                    <div class="perm-info">
+                        <div class="perm-icon"><i class="fas fa-wallet"></i></div>
+                        <div class="perm-text">
+                            <div>Budget</div>
+                            <div>Gestion budgétaire</div>
+                        </div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="permissions" value="budget">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="permission-item">
+                    <div class="perm-info">
+                        <div class="perm-icon"><i class="fas fa-users-cog"></i></div>
+                        <div class="perm-text">
+                            <div>Utilisateurs</div>
+                            <div>Gestion des comptes</div>
+                        </div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="permissions" value="users">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a href="{{ url_for('admin_users_list') }}" class="btn-cancel">Annuler</a>
+            <button type="submit" class="btn-submit">Créer l'utilisateur</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function togglePassword() {
+        const input = document.getElementById('passwordInput');
+        const icon = document.getElementById('toggleIcon');
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = "password";
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+
+    // Auto-fill permissions based on role selection
+    document.addEventListener('DOMContentLoaded', function () {
+        const roleInputs = document.querySelectorAll('input[name="role"]');
+        const permissionCheckboxes = document.querySelectorAll('input[name="permissions"]');
+
+        const rolePermissions = {
+            'admin': ['stock', 'receptions', 'dotations', 'avis_achat', 'bons_sortie', 'budget', 'users'],
+            'gestionnaire': ['stock', 'receptions', 'dotations', 'avis_achat', 'bons_sortie'],
+            'user': [],
+            'invite': []
+        };
+
+        roleInputs.forEach(roleInput => {
+            roleInput.addEventListener('change', function () {
+                const selectedRole = this.value;
+                const permissions = rolePermissions[selectedRole] || [];
+
+                permissionCheckboxes.forEach(checkbox => {
+                    if (permissions.includes(checkbox.value)) {
+                        checkbox.checked = true;
+                    } else {
+                        checkbox.checked = false;
+                    }
+                });
+            });
+        });
+
+        // Dynamic filtering of units based on region
+        const regionSelect = document.querySelector('select[name="region_id"]');
+        const uniteSelect = document.querySelector('select[name="unite_id"]');
+        const originalUniteOptions = Array.from(uniteSelect.options);
+
+        function filterUnites() {
+            const selectedRegionId = regionSelect.value;
+            const currentUniteValue = uniteSelect.value;
+
+            // Clear current options
+            uniteSelect.innerHTML = '';
+
+            // Filter and add options
+            originalUniteOptions.forEach(option => {
+                const optionRegionId = option.getAttribute('data-region-id');
+
+                if (option.value === "" || !selectedRegionId || optionRegionId === selectedRegionId) {
+                    uniteSelect.appendChild(option.cloneNode(true));
+                }
+            });
+
+            // Restore selection if still valid
+            if (Array.from(uniteSelect.options).some(opt => opt.value === currentUniteValue)) {
+                uniteSelect.value = currentUniteValue;
+            } else {
+                uniteSelect.value = "";
+            }
+        }
+
+        regionSelect.addEventListener('change', filterUnites);
+
+        // Initial filter if a region is already selected (e.g., after a validation error)
+        if (regionSelect.value) {
+            filterUnites();
+        }
+    });
+</script>
+
+
+{% endblock %}

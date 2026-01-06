@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Export Excel - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Tableau de Bord</a></li>
+<li class="breadcrumb-item active">Export Excel</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-file-excel me-2 text-success"></i>Configuration de l'Export Excel</h4>
+            </div>
+            <div class="card-body">
+                <form autocomplete="off" method="POST" action="{{ url_for('export_stock_excel') }}">
+                    <!-- Type d'État -->
+                    <div class="mb-4">
+                        <label class="form-label"><strong>Type d'État à Exporter</strong></label>
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="type_etat" id="etat_global" value="global" checked>
+                                    <label class="form-check-label" for="etat_global">
+                                        <i class="fas fa-chart-bar me-2 text-primary"></i>
+                                        <strong>État Global</strong><br>
+                                        <small class="text-muted">Tous les articles du stock</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="type_etat" id="etat_ruptures" value="ruptures">
+                                    <label class="form-check-label" for="etat_ruptures">
+                                        <i class="fas fa-times-circle me-2 text-danger"></i>
+                                        <strong>Ruptures de Stock</strong><br>
+                                        <small class="text-muted">Articles avec quantité = 0</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="type_etat" id="etat_stock_bas" value="stock_bas">
+                                    <label class="form-check-label" for="etat_stock_bas">
+                                        <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+                                        <strong>Stock Bas</strong><br>
+                                        <small class="text-muted">Articles = seuil de réappro.</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtrage par Date -->
+                    <div class="mb-4">
+                        <label class="form-label"><strong>Période (Optionnel)</strong></label>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="date_debut" class="form-label">Date de Début</label>
+                                <input type="date" class="form-control" id="date_debut" name="date_debut">
+                                <div class="form-text">Articles créés à partir de cette date</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="date_fin" class="form-label">Date de Fin</label>
+                                <input type="date" class="form-control" id="date_fin" name="date_fin">
+                                <div class="form-text">Articles créés jusqu'à cette date</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Options Supplémentaires -->
+                    <div class="mb-4">
+                        <label class="form-label"><strong>Feuilles Supplémentaires</strong></label>
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="inclure_stats" id="inclure_stats" checked>
+                                    <label class="form-check-label" for="inclure_stats">
+                                        <i class="fas fa-chart-pie me-2 text-info"></i>
+                                        <strong>Statistiques</strong><br>
+                                        <small class="text-muted">Résumé par catégories</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="inclure_dotations" name="inclure_dotations">
+                                    <label class="form-check-label" for="inclure_dotations">
+                                        <i class="fas fa-gift me-2 text-primary"></i>
+                                        <strong>Dotations</strong>
+                                        <small class="d-block text-muted">Historique des dotations par unité</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aperçu -->
+                    <div class="alert alert-info" id="apercu" style="display: none;">
+                        <h6><i class="fas fa-eye me-2"></i>Aperçu de l'Export</h6>
+                        <div id="apercu-contenu"></div>
+                    </div>
+
+                    <!-- Boutons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Retour
+                        </a>
+                        <div>
+                            <button type="button" class="btn btn-outline-primary me-2" id="btn-apercu">
+                                <i class="fas fa-eye me-2"></i>Aperçu
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-download me-2"></i>Générer Excel
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnApercu = document.getElementById('btn-apercu');
+    const apercu = document.getElementById('apercu');
+    const apercuContenu = document.getElementById('apercu-contenu');
+    
+    btnApercu.addEventListener('click', function() {
+        const typeEtat = document.querySelector('input[name="type_etat"]:checked').value;
+        const dateDebut = document.getElementById('date_debut').value;
+        const dateFin = document.getElementById('date_fin').value;
+        const inclureStats = document.getElementById('inclure_stats').checked;
+        const inclureAffectations = document.getElementById('inclure_affectations').checked;
+        
+        let contenu = '<ul class="mb-0">';
+        
+        // Type d'état
+        if (typeEtat === 'global') {
+            contenu += '<li><strong>Contenu :</strong> Tous les articles du stock</li>';
+        } else if (typeEtat === 'ruptures') {
+            contenu += '<li><strong>Contenu :</strong> Articles en rupture de stock uniquement</li>';
+        } else if (typeEtat === 'stock_bas') {
+            contenu += '<li><strong>Contenu :</strong> Articles en stock bas uniquement</li>';
+        }
+        
+        // Période
+        if (dateDebut || dateFin) {
+            contenu += '<li><strong>Période :</strong> ';
+            if (dateDebut && dateFin) {
+                contenu += `Du ${dateDebut} au ${dateFin}`;
+            } else if (dateDebut) {
+                contenu += `À partir du ${dateDebut}`;
+            } else if (dateFin) {
+                contenu += `Jusqu'au ${dateFin}`;
+            }
+            contenu += '</li>';
+        } else {
+            contenu += '<li><strong>Période :</strong> Toutes les dates</li>';
+        }
+        
+        // Feuilles supplémentaires
+        let feuilles = ['Feuille principale (Articles)'];
+        if (inclureStats) feuilles.push('Statistiques par catégorie');
+        if (inclureAffectations) feuilles.push('Historique des affectations');
+        
+        contenu += `<li><strong>Feuilles :</strong> ${feuilles.join(', ')}</li>`;
+        contenu += '</ul>';
+        
+        apercuContenu.innerHTML = contenu;
+        apercu.style.display = 'block';
+    });
+    
+    // Masquer l'aperçu quand on change les options
+    document.querySelectorAll('input, select').forEach(function(element) {
+        element.addEventListener('change', function() {
+            apercu.style.display = 'none';
+        });
+    });
+});
+</script>
+{% endblock %}

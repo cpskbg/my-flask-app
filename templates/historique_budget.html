@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Historique Budget - {{ budget.nature }} - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block content %}
+
+<!-- Header de page -->
+<div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded-3" style="background: linear-gradient(135deg, rgba(255, 235, 59, 0.15) 0%, rgba(0, 188, 212, 0.15) 100%); border: 1px solid rgba(255, 235, 59, 0.3); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: linear-gradient(135deg, #FFEB3B 0%, #00BCD4 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(255, 235, 59, 0.4);">
+            <i class="fas fa-history" style="color: #fff; font-size: 1.4rem;"></i>
+        </div>
+        <div>
+            <h4 class="mb-0" style="font-weight: 700; color: #000; letter-spacing: 0.5px; font-size: 1.4rem; text-shadow: 0 2px 4px rgba(255, 255, 255, 0.5);">Historique des Consommations</h4>
+            <p class="mb-0 text-muted" style="font-size: 0.9rem;">{{ budget.nature }}</p>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('engagements') }}" class="btn btn-secondary d-flex align-items-center gap-2" style="padding: 8px 16px; font-size: 0.9rem; font-weight: 600; border-radius: 8px;">
+            <i class="fas fa-arrow-left" style="font-size: 0.95rem;"></i>
+            <span>Retour</span>
+        </a>
+    </div>
+</div>
+
+<!-- Résumé du budget -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-primary">
+            <div class="card-body">
+                <h6 class="card-title text-primary"><i class="fas fa-wallet me-2"></i>Budget Initial</h6>
+                <h3 class="mb-0">{{ "%.2f"|format(budget.budget_total) }} DH</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-danger">
+            <div class="card-body">
+                <h6 class="card-title text-danger"><i class="fas fa-arrow-down me-2"></i>Budget Consommé</h6>
+                <h3 class="mb-0">{{ "%.2f"|format(budget.budget_consomme) }} DH</h3>
+                <small class="text-muted">
+                    {{ "%.1f"|format((budget.budget_consomme / budget.budget_total * 100) if budget.budget_total > 0 else 0) }}% du budget
+                </small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card {% if budget.est_verrouille %}border-danger{% elif budget.budget_restant < (budget.budget_total * 0.2) %}border-warning{% else %}border-success{% endif %}">
+            <div class="card-body">
+                <h6 class="card-title {% if budget.est_verrouille %}text-danger{% elif budget.budget_restant < (budget.budget_total * 0.2) %}text-warning{% else %}text-success{% endif %}">
+                    <i class="fas fa-coins me-2"></i>Budget Restant
+                </h6>
+                <h3 class="mb-0 {% if budget.est_verrouille %}text-danger{% elif budget.budget_restant < (budget.budget_total * 0.2) %}text-warning{% else %}text-success{% endif %}">
+                    {{ "%.2f"|format(budget.budget_restant) }} DH
+                </h3>
+                {% if budget.est_verrouille %}
+                <span class="badge bg-danger"><i class="fas fa-lock me-1"></i>Verrouillé</span>
+                {% elif budget.budget_restant < (budget.budget_total * 0.2) %}
+                <span class="badge bg-warning"><i class="fas fa-exclamation-triangle me-1"></i>Alerte</span>
+                {% else %}
+                <span class="badge bg-success"><i class="fas fa-check me-1"></i>Disponible</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Graphique de progression -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h6 class="card-title"><i class="fas fa-chart-bar me-2"></i>Progression de la Consommation</h6>
+        <div class="progress" style="height: 30px;">
+            {% set percent = (budget.budget_consomme / budget.budget_total * 100) if budget.budget_total > 0 else 0 %}
+            <div class="progress-bar {% if percent >= 100 %}bg-danger{% elif percent >= 80 %}bg-warning{% else %}bg-success{% endif %}" 
+                 role="progressbar" 
+                 style="width: {{ percent }}%"
+                 aria-valuenow="{{ percent }}" 
+                 aria-valuemin="0" 
+                 aria-valuemax="100">
+                <strong>{{ "%.1f"|format(percent) }}%</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des bons de commande -->
+<div class="card shadow-sm">
+    <div class="card-header py-2" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <h5 class="mb-0" style="color: #000; font-weight: 700;"><i class="fas fa-list me-2"></i>Historique des Bons de Commande</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if bons %}
+        <div style="overflow-x: hidden;">
+            <table class="table table-hover table-sm mb-0" style="table-layout: fixed; width: 100%;">
+                <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <tr>
+                        <th style="width: 12%; font-size: 1rem; padding: 12px 8px; font-weight: 700; text-align: center; vertical-align: middle; color: #000;">DATE</th>
+                        <th style="width: 15%; font-size: 1rem; padding: 12px 8px; font-weight: 700; text-align: center; vertical-align: middle; color: #000;">N° BC</th>
+                        <th style="width: 25%; font-size: 1rem; padding: 12px 8px; font-weight: 700; text-align: center; vertical-align: middle; color: #000;">BÉNÉFICIAIRE</th>
+                        <th style="width: 15%; font-size: 1rem; padding: 12px 8px; font-weight: 700; text-align: center; vertical-align: middle; color: #000;">MONTANT<br><small style="font-size: 0.75rem; color: #000;">(MAD)</small></th>
+                        <th style="width: 15%; font-size: 1rem; padding: 12px 8px; font-weight: 700; text-align: center; vertical-align: middle; color: #000;">DÉCISION</th>
+                        <th style="width: 18%; font-size: 1rem; padding: 12px 8px; font-weight: 700; text-align: center; vertical-align: middle; color: #000;">STATUT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bc in bons %}
+                    <tr style="border-bottom: 1px solid #e9ecef;">
+                        <td style="text-align: center; vertical-align: middle; padding: 8px 6px; font-size: 0.85rem;">{{ format_datetime(bc.date_engagement, '%d/%m/%Y') }}</td>
+                        <td style="text-align: center; vertical-align: middle; padding: 8px 6px;"><span class="badge bg-primary" style="font-size: 0.75rem;">{{ bc.numero_bc }}</span></td>
+                        <td style="text-align: center; vertical-align: middle; padding: 8px 6px; font-size: 0.85rem;">{{ bc.beneficiaire }}</td>
+                        <td style="text-align: center; vertical-align: middle; padding: 8px 6px;"><strong class="text-danger" style="font-size: 0.9rem;">{{ "%.2f"|format(bc.montant_engage) }}</strong></td>
+                        <td style="text-align: center; vertical-align: middle; padding: 8px 6px;">
+                            {% if bc.decision_controle == 'Visa' %}
+                            <span class="badge bg-success">Visa</span>
+                            {% else %}
+                            <span class="badge bg-warning">Retour avec observations</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center; vertical-align: middle; padding: 8px 6px;">
+                            {% if bc.date_reglement %}
+                            <span class="badge bg-success"><i class="fas fa-check me-1"></i>Réglé</span>
+                            {% elif bc.controle_tresorier == 'Visa' %}
+                            <span class="badge bg-info"><i class="fas fa-clock me-1"></i>Visa Trésorier</span>
+                            {% elif bc.decision_controle == 'Visa' %}
+                            <span class="badge bg-primary"><i class="fas fa-hourglass-half me-1"></i>En cours</span>
+                            {% else %}
+                            <span class="badge bg-warning"><i class="fas fa-pause me-1"></i>En attente</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border-top: 2px solid #667eea;">
+                    <tr>
+                        <th colspan="3" style="text-align: right; padding: 12px 8px; font-size: 1rem; font-weight: 700; color: #000;">TOTAL CONSOMÉ:</th>
+                        <th colspan="3" style="text-align: center; padding: 12px 8px;">
+                            <strong class="text-danger" style="font-size: 1.2rem;">{{ "%.2f"|format(budget.budget_consomme) }} MAD</strong>
+                            <br>
+                            <small class="text-muted" style="font-size: 0.75rem;">
+                                ({{ bons|length }} bon(s) de commande)
+                            </small>
+                        </th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+            <h5 class="text-muted">Aucun bon de commande</h5>
+            <p class="text-muted">Aucune consommation enregistrée pour cette nature de prestation.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

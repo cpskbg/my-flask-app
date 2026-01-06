@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}Nouveau Bon de Commande - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block content %}
+
+<!-- Header de page -->
+<div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded-3" style="background: linear-gradient(135deg, rgba(255, 235, 59, 0.15) 0%, rgba(0, 188, 212, 0.15) 100%); border: 1px solid rgba(255, 235, 59, 0.3); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
+    <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: linear-gradient(135deg, #FFEB3B 0%, #00BCD4 100%); border-radius: 12px; box-shadow: 0 4px 12px rgba(255, 235, 59, 0.4);">
+            <i class="fas fa-file-invoice" style="color: #fff; font-size: 1.4rem;"></i>
+        </div>
+        <h4 class="mb-0" style="font-weight: 700; color: #000; letter-spacing: 0.5px; font-size: 1.4rem; text-shadow: 0 2px 4px rgba(255, 255, 255, 0.5);">Nouveau Bon de Commande</h4>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('engagements') }}" class="btn btn-secondary d-flex align-items-center gap-2" style="padding: 8px 16px; font-size: 0.9rem; font-weight: 600; border-radius: 8px;">
+            <i class="fas fa-arrow-left" style="font-size: 0.95rem;"></i>
+            <span>Retour</span>
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form autocomplete="off" method="POST" action="{{ url_for('add_bon_commande') }}" id="bcForm">
+            <!-- Informations de base -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="numero_bc" class="form-label">N° Bon de Commande <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="numero_bc" name="numero_bc" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="loi_finance" class="form-label">Loi de Finance <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="loi_finance" name="loi_finance" value="LF-{{ now().year }}" required>
+                    <small class="form-text text-muted">Format: LF-ANNÉE (ex: LF-2025)</small>
+                </div>
+            </div>
+
+            <!-- Nature de prestation -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="nature_prestation" class="form-label">Nature de Prestation <span class="text-danger">*</span></label>
+                    <select class="form-select" id="nature_prestation" name="nature_prestation" required onchange="handleNatureChange()">
+                        <option value="">-- Sélectionner --</option>
+                        {% for budget in budgets %}
+                        <option value="{{ budget.nature }}" data-budget="{{ budget.budget_restant }}">
+                            {{ budget.nature }} ({{ "%.2f"|format(budget.budget_restant) }} DH disponible)
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div id="budgetAlert" class="alert alert-info mt-2" style="display: none;">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span id="budgetText"></span>
+                    </div>
+                </div>
+                <div class="col-md-6" id="sousCategorieDiv" style="display: none;">
+                    <label for="sous_categorie" class="form-label">Sous-catégorie <span class="text-danger">*</span></label>
+                    <select class="form-select" id="sous_categorie" name="sous_categorie">
+                        <option value="">-- Sélectionner --</option>
+                        <option value="Articles de Plomberie">Articles de Plomberie</option>
+                        <option value="Articles d'électricité">Articles d'électricité</option>
+                        <option value="Articles de Peintures">Articles de Peintures</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Date et numéros -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="date_engagement" class="form-label">Date Engagement <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="date_engagement" name="date_engagement" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="numero_fiche_navette" class="form-label">N° Fiche de Navette <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="numero_fiche_navette" name="numero_fiche_navette" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="montant_engage" class="form-label">Montant Engagé (DH) <span class="text-danger">*</span></label>
+                    <input type="number" step="0.01" class="form-control" id="montant_engage" name="montant_engage" required onchange="checkBudget()">
+                </div>
+            </div>
+
+            <!-- Bénéficiaire -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="beneficiaire" class="form-label">Bénéficiaire <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="beneficiaire" name="beneficiaire" required>
+                </div>
+            </div>
+
+            <!-- Décision contrôle -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="decision_controle" class="form-label">Décision Contrôle <span class="text-danger">*</span></label>
+                    <select class="form-select" id="decision_controle" name="decision_controle" required onchange="handleDecisionChange()">
+                        <option value="">-- Sélectionner --</option>
+                        <option value="Visa">Visa</option>
+                        <option value="Retour avec observations">Retour avec observations</option>
+                    </select>
+                </div>
+                <div class="col-md-4" id="dateVisaDiv" style="display: none;">
+                    <label for="date_visa" class="form-label">Date Visa</label>
+                    <input type="date" class="form-control" id="date_visa" name="date_visa">
+                </div>
+                <div class="col-md-4" id="observationsControleDiv" style="display: none;">
+                    <label for="observations_controle" class="form-label">Observations Contrôle <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="observations_controle" name="observations_controle" rows="3"></textarea>
+                </div>
+            </div>
+
+            <!-- Ordonnancement -->
+            <div id="ordonnancementFields" style="display: none;">
+                <hr>
+                <h6 class="mb-3"><i class="fas fa-file-invoice text-primary me-2"></i>Ordonnancement</h6>
+                
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="date_service_fait" class="form-label">Date Service Fait</label>
+                        <input type="date" class="form-control" id="date_service_fait" name="date_service_fait">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="numero_bordereau_emission" class="form-label">Bordereau d'Émission</label>
+                        <input type="text" class="form-control" id="numero_bordereau_emission" name="numero_bordereau_emission">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="decision_controle_ordo" class="form-label">Décision Contrôle</label>
+                        <select class="form-select" id="decision_controle_ordo" name="decision_controle_ordo" onchange="handleDecisionOrdoChange()">
+                            <option value="">-- Sélectionner --</option>
+                            <option value="Visa">Visa</option>
+                            <option value="Retour avec observations">Retour avec observations</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Champs si Visa Ordonnancement -->
+                <div id="visaOrdoFields" style="display: none;">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="date_visa_ordo" class="form-label">Date Visa</label>
+                            <input type="date" class="form-control" id="date_visa_ordo" name="date_visa_ordo">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="etat_reglement" class="form-label">État Règlement</label>
+                            <select class="form-select" id="etat_reglement" name="etat_reglement" onchange="handleEtatReglementChange()">
+                                <option value="">-- Sélectionner --</option>
+                                <option value="Réglé">Réglé</option>
+                                <option value="En attente">En attente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4" id="dateReglementDiv" style="display: none;">
+                            <label for="date_reglement" class="form-label">Date de Règlement</label>
+                            <input type="date" class="form-control" id="date_reglement" name="date_reglement">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Boutons -->
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{{ url_for('engagements') }}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>Annuler
+                </a>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="fas fa-save me-2"></i>Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Gestion de la nature de prestation
+function handleNatureChange() {
+    const select = document.getElementById('nature_prestation');
+    const sousCategorieDiv = document.getElementById('sousCategorieDiv');
+    const sousCategorieSelect = document.getElementById('sous_categorie');
+    const budgetAlert = document.getElementById('budgetAlert');
+    const budgetText = document.getElementById('budgetText');
+    
+    const selectedOption = select.options[select.selectedIndex];
+    const nature = selectedOption.value;
+    const budgetRestant = selectedOption.getAttribute('data-budget');
+    
+    // Afficher sous-catégorie si Entretien
+    if (nature.includes('Entretien')) {
+        sousCategorieDiv.style.display = 'block';
+        sousCategorieSelect.required = true;
+    } else {
+        sousCategorieDiv.style.display = 'none';
+        sousCategorieSelect.required = false;
+        sousCategorieSelect.value = '';
+    }
+    
+    // Afficher budget disponible
+    if (nature) {
+        budgetAlert.style.display = 'block';
+        budgetText.textContent = `Budget disponible: ${parseFloat(budgetRestant).toFixed(2)} DH`;
+    } else {
+        budgetAlert.style.display = 'none';
+    }
+}
+
+// Vérifier le budget
+function checkBudget() {
+    const select = document.getElementById('nature_prestation');
+    const montantInput = document.getElementById('montant_engage');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    const selectedOption = select.options[select.selectedIndex];
+    const budgetRestant = parseFloat(selectedOption.getAttribute('data-budget'));
+    const montant = parseFloat(montantInput.value);
+    
+    if (montant > budgetRestant) {
+        alert(`⚠️ Budget insuffisant ! Montant demandé: ${montant.toFixed(2)} DH | Budget restant: ${budgetRestant.toFixed(2)} DH`);
+        submitBtn.disabled = true;
+    } else {
+        submitBtn.disabled = false;
+    }
+}
+
+// Gestion décision contrôle
+function handleDecisionChange() {
+    const decision = document.getElementById('decision_controle').value;
+    const observationsDiv = document.getElementById('observationsControleDiv');
+    const observationsField = document.getElementById('observations_controle');
+    const dateVisaDiv = document.getElementById('dateVisaDiv');
+    const ordonnancementFields = document.getElementById('ordonnancementFields');
+    
+    if (decision === 'Retour avec observations') {
+        observationsDiv.style.display = 'block';
+        observationsField.required = true;
+        dateVisaDiv.style.display = 'none';
+        ordonnancementFields.style.display = 'none';
+    } else if (decision === 'Visa') {
+        observationsDiv.style.display = 'none';
+        observationsField.required = false;
+        dateVisaDiv.style.display = 'block';
+        ordonnancementFields.style.display = 'block';
+    } else {
+        observationsDiv.style.display = 'none';
+        observationsField.required = false;
+        dateVisaDiv.style.display = 'none';
+        ordonnancementFields.style.display = 'none';
+    }
+}
+
+// Gestion décision contrôle ordonnancement
+function handleDecisionOrdoChange() {
+    const decision = document.getElementById('decision_controle_ordo').value;
+    const visaOrdoFields = document.getElementById('visaOrdoFields');
+    
+    if (decision === 'Visa') {
+        visaOrdoFields.style.display = 'block';
+    } else {
+        visaOrdoFields.style.display = 'none';
+    }
+}
+
+// Gestion état règlement
+function handleEtatReglementChange() {
+    const etat = document.getElementById('etat_reglement').value;
+    const dateReglementDiv = document.getElementById('dateReglementDiv');
+    
+    if (etat === 'Réglé') {
+        dateReglementDiv.style.display = 'block';
+    } else {
+        dateReglementDiv.style.display = 'none';
+    }
+}
+
+// Définir la date par défaut à aujourd'hui
+document.getElementById('date_engagement').valueAsDate = new Date();
+</script>
+
+{% endblock %}

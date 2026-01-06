@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Importer Articles - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-file-import me-2"></i>Importer des Articles depuis Excel</h2>
+                <a href="{{ url_for('items') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Retour
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white;">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Instructions d'importation</h5>
+                </div>
+                <div class="card-body">
+                    <h6><i class="fas fa-download me-2 text-success"></i>1. Télécharger le modèle Excel</h6>
+                    <p>Utilisez le modèle fourni pour garantir la compatibilité des données.</p>
+                    <a href="{{ url_for('download_template') }}" class="btn btn-success mb-3">
+                        <i class="fas fa-file-excel me-2"></i>Télécharger le Modèle
+                    </a>
+
+                    <h6><i class="fas fa-edit me-2 text-primary"></i>2. Remplir le fichier Excel</h6>
+                    <p>Le fichier doit contenir les colonnes suivantes :</p>
+                    <ul>
+                        <li><strong>SKU</strong> : Code unique (optionnel, sera généré automatiquement si vide)</li>
+                        <li><strong>Nom</strong> : Nom de l'article (obligatoire)</li>
+                        <li><strong>Catégorie</strong> : Catégorie de l'article (obligatoire)</li>
+                        <li><strong>Description</strong> : Description détaillée (optionnel)</li>
+                        <li><strong>Unité</strong> : Unité, Lot, Paquet, Boîte, Ramette, Kg, Litre (obligatoire, insensible à la casse)</li>
+                        <li><strong>Quantité</strong> : Quantité initiale en stock (optionnel, 0 par défaut)</li>
+                        <li><strong>Seuil de Commande</strong> : Seuil de réapprovisionnement (obligatoire)</li>
+                    </ul>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note importante :</strong> Lors de l'ajout manuel d'articles, la quantité est toujours initialisée à 0. 
+                        L'importation Excel permet de définir une quantité initiale pour faciliter l'import d'un stock existant. 
+                        Si vous laissez la colonne Quantité vide, elle sera automatiquement mise à 0.
+                    </div>
+
+                    <h6><i class="fas fa-list me-2 text-warning"></i>Catégories valides :</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul>
+                                <li><strong>Fournitures de bureaux et documentation</strong></li>
+                                <li><strong>Produits d'hygiène et de désinfection</strong></li>
+                                <li><strong>Fournitures pour le matériel informatique</strong></li>
+                                <li><strong>Alimentation à usage Humaine</strong></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul>
+                                <li><strong>Entretien bâtiments administratifs</strong> (ou ses sous-catégories) :
+                                    <ul>
+                                        <li>Articles de plomberies</li>
+                                        <li>Articles électriques</li>
+                                        <li>Articles de la peinture</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-2">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Note :</strong> Pour "Entretien bâtiments administratifs", vous pouvez utiliser soit la catégorie principale, 
+                        soit directement l'une des sous-catégories (Articles de plomberies, Articles électriques, Articles de la peinture).
+                    </div>
+
+                    <h6><i class="fas fa-upload me-2 text-info"></i>3. Importer le fichier</h6>
+                    <p>Sélectionnez votre fichier Excel rempli et cliquez sur "Importer".</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire d'importation -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+                    <h5 class="mb-0"><i class="fas fa-cloud-upload-alt me-2"></i>Importer le fichier Excel</h5>
+                </div>
+                <div class="card-body">
+                    <form autocomplete="off" method="POST" enctype="multipart/form-data" id="importForm">
+                        <div class="mb-3">
+                            <label for="file" class="form-label">
+                                <i class="fas fa-file-excel me-2"></i>Sélectionner le fichier Excel (.xlsx, .xls)
+                            </label>
+                            <input type="file" class="form-control" id="file" name="file" 
+                                   accept=".xlsx,.xls" required>
+                            <div class="form-text">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Formats acceptés : .xlsx, .xls (Excel)
+                            </div>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="skip_duplicates" 
+                                   name="skip_duplicates" checked>
+                            <label class="form-check-label" for="skip_duplicates">
+                                Ignorer les doublons (SKU existants)
+                            </label>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload me-2"></i>Importer les Articles
+                            </button>
+                            <button type="reset" class="btn btn-secondary">
+                                <i class="fas fa-redo me-2"></i>Réinitialiser
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aperçu des résultats (si importation effectuée) -->
+    {% if import_results %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Résultats de l'importation</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="p-3 bg-success bg-opacity-10 rounded">
+                                <h3 class="text-success">{{ import_results.success }}</h3>
+                                <p class="mb-0">Articles importés</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-warning bg-opacity-10 rounded">
+                                <h3 class="text-warning">{{ import_results.skipped }}</h3>
+                                <p class="mb-0">Articles ignorés</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-danger bg-opacity-10 rounded">
+                                <h3 class="text-danger">{{ import_results.errors }}</h3>
+                                <p class="mb-0">Erreurs</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if import_results.error_details %}
+                    <div class="mt-3">
+                        <h6 class="text-danger"><i class="fas fa-exclamation-circle me-2"></i>Détails des erreurs :</h6>
+                        <ul class="list-group">
+                            {% for error in import_results.error_details %}
+                            <li class="list-group-item list-group-item-danger">
+                                <strong>Ligne {{ error.row }}</strong>: {{ error.message }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.getElementById('importForm').addEventListener('submit', function(e) {
+    const fileInput = document.getElementById('file');
+    if (!fileInput.files.length) {
+        e.preventDefault();
+        alert('Veuillez sélectionner un fichier Excel.');
+        return;
+    }
+    
+    const fileName = fileInput.files[0].name;
+    const fileExt = fileName.split('.').pop().toLowerCase();
+    
+    if (!['xlsx', 'xls'].includes(fileExt)) {
+        e.preventDefault();
+        alert('Format de fichier invalide. Veuillez sélectionner un fichier Excel (.xlsx ou .xls).');
+        return;
+    }
+    
+    // Afficher un loader
+    const btn = this.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Importation en cours...';
+});
+</script>
+{% endblock %}

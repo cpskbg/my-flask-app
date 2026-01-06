@@ -1,0 +1,112 @@
+# ==================================================
+# STRUCTURE ET FONCTIONNALITÉS DU PROJET STOCK APP
+# ==================================================
+
+## 1. VUE D'ENSEMBLE
+
+Ce projet est une application web de gestion de stock et de budget développée en Python avec le framework Flask. Elle permet de suivre les articles, les entrées (réceptions), les sorties (dotations), de gérer les fournisseurs, les avis d'achat, et de suivre les budgets alloués par nature de prestation.
+
+---
+
+## 2. TECHNOLOGIES ET DÉPENDANCES CLÉS (`requirements.txt`)
+
+- **Framework Web**: Flask
+- **Base de Données**: Flask-SQLAlchemy (probablement avec SQLite, vu le fichier `stock_management.db`)
+- **Sécurité & Utilisateurs**: Flask-Security-Too, Flask-Login (gestion des comptes, rôles, permissions)
+- **Interface d'Administration**: Flask-Admin
+- **Formulaires**: Flask-WTF, WTForms
+- **Manipulation Excel**: openpyxl (pour l'import/export)
+- **Génération PDF/Rapports**: reportlab, WeasyPrint
+
+---
+
+## 3. STRUCTURE DES FICHIERS
+
+```
+c:/Users/fadi-/Downloads/stock_app_python main/stock_app_python main/stock_app_python/
+├── app.py                     # Fichier principal : routes Flask, logique métier, modèles de données
+├── models.py                  # Définition de certains modèles SQLAlchemy (ex: Fournisseur)
+├── requirements.txt           # Dépendances Python du projet
+├── stock_management.db        # Fichier de la base de données SQLite
+├── static/                    # Fichiers statiques (CSS, JS, images)
+├── templates/                 # Templates HTML (Jinja2) pour l'interface utilisateur
+├── UI_STRUCTURE_FONCTIONS.txt # Fichier de documentation existant
+├── .gitignore                 # Fichiers et dossiers ignorés par Git
+├── *.py                       # Divers scripts de migration ou d'initialisation (ex: init_categories.py)
+└── restart_app.bat            # Script pour redémarrer l'application
+```
+
+---
+
+## 4. MODÈLES DE DONNÉES (Base de Données)
+
+*Note : La plupart des modèles sont définis directement dans `app.py`. `models.py` ne contient qu'une partie des définitions.*
+
+- **User**: Utilisateurs (identifiants, rôles, permissions).
+- **Item**: Articles en stock (nom, SKU, quantité, catégorie, seuil d'alerte).
+- **Reception**: Entrées de stock (article, quantité, date, fournisseur).
+- **Dotation**: Sorties de stock (bénéficiaire, articles, quantités, date).
+- **Fournisseur**: Informations sur les fournisseurs (nom, contact, catégories de services).
+- **Categorie**: Catégories et sous-catégories de services/articles.
+- **Contact**: Contacts associés à un fournisseur.
+- **AvisAchat**: Demandes d'achat (articles, quantités, statut).
+- **BonCommande / Indemnite**: Engagements budgétaires.
+- **Budget**: Budgets alloués par nature de prestation et par année.
+- **ConsommationBudget**: Suivi des dépenses sur les budgets.
+- **AuditLog**: Journal des actions des utilisateurs.
+
+---
+
+## 5. DÉTAIL DES FONCTIONNALITÉS PAR MODULE
+
+### A. Gestion des Utilisateurs et Authentification
+- **Templates**: `login.html`, `admin_users.html`, `admin_create_user.html`, `admin_edit_user.html`, `change_password.html`
+- **Fonctionnalités**:
+  - Connexion / Déconnexion sécurisée.
+  - Gestion des utilisateurs (créer, modifier, supprimer, restaurer) via une interface d'administration.
+  - Attribution de rôles et de permissions.
+  - Changement de mot de passe par l'utilisateur.
+
+### B. Gestion des Articles et du Stock
+- **Templates**: `items.html`, `add_item.html`, `edit_item.html`, `low_stock.html`
+- **Fonctionnalités**:
+  - CRUD complet pour les articles (Créer, Lire, Mettre à jour, Supprimer).
+  - Liste paginée avec recherche et filtres.
+  - Alerte pour les articles en stock bas.
+  - Import de masse depuis un fichier Excel (`import_items.html`).
+  - Suppression multiple et remise à zéro des quantités.
+
+### C. Mouvements de Stock (Réceptions & Dotations)
+- **Templates**: `receptions.html`, `add_reception.html`, `dotations.html`, `add_dotation.html`, `view_dotation.html`
+- **Fonctionnalités**:
+  - Enregistrement des entrées de stock (réceptions).
+  - Enregistrement des sorties de stock (dotations) pour des unités/services.
+  - Historique complet des mouvements.
+  - Vue détaillée de chaque dotation.
+
+### D. Gestion des Fournisseurs
+- **Templates**: `suppliers.html`, `add_supplier.html`, `edit_supplier.html`, `_supplier_categories_block.html`
+- **Fonctionnalités**:
+  - CRUD pour les fournisseurs.
+  - Association de contacts et de catégories de services à chaque fournisseur.
+  - Interface de sélection des catégories sous forme de badges colorés.
+
+### E. Processus d'Achat
+- **Templates**: `avis_achats.html`, `add_avis_achat.html`, `edit_avis_achat.html`
+- **Fonctionnalités**:
+  - Création d'avis d'achat en sélectionnant des articles par nature de prestation.
+  - Suivi des statuts des avis d'achat.
+
+### F. Suivi Budgétaire
+- **Templates**: `dashboard.html`, `budget_details.html`, `engagements.html`, `historique_budget.html`
+- **Fonctionnalités**:
+  - Tableau de bord avec statistiques sur l'état des budgets.
+  - Vue détaillée des budgets par nature et par année.
+  - Enregistrement des engagements (Bons de commande, indemnités) qui consomment le budget.
+  - Historique des consommations pour chaque ligne budgétaire.
+  - Export des données budgétaires en Excel.
+
+### G. Outils et Administration
+- **Routes API (`/api/*`)**: Points d'accès pour charger des données dynamiquement (ex: articles d'une catégorie, services d'une unité) via JavaScript (AJAX).
+- **Scripts de maintenance**: Fichiers `.py` à la racine pour des migrations de données ou des initialisations (ex: `init_categories.py`).
+- **Journal d'audit**: Enregistrement des actions importantes des utilisateurs pour la traçabilité.

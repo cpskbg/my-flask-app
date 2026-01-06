@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+
+{% block title %}Nouvelle Réception - Gestion Intégrée des Dotations Annuelles en Fournitures{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Réduire l'espace vide */
+    .container-fluid {
+        max-width: 1400px;
+    }
+    
+    /* Style compact pour le formulaire */
+    .compact-form .mb-3 {
+        margin-bottom: 1rem !important;
+    }
+    
+    .compact-form .alert {
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* Animation pour le prix total TTC */
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Tableau de Bord</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('receptions') }}">Réceptions</a></li>
+<li class="breadcrumb-item active">Nouvelle Réception</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%); padding: 1.5rem; border-bottom: 3px solid #17a2b8;">
+                    <h4 class="mb-0" style="font-weight: 700; font-size: 1.5rem; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); letter-spacing: 0.5px;">
+                        <i class="fas fa-truck me-2" style="font-size: 1.6rem; vertical-align: middle;"></i>
+                        Enregistrer une Réception
+                    </h4>
+                </div>
+                <div class="card-body compact-form">
+                <form autocomplete="off" method="POST">
+                    <!-- Filtre par Nature de Prestation -->
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="alert alert-warning" style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%); border-left: 4px solid #ffc107; padding: 1rem;">
+                                <h6 class="mb-2" style="color: #ff6b35; font-weight: 700;">
+                                    <i class="fas fa-filter me-2"></i>Filtrer par Nature de Prestation
+                                </h6>
+                                <select class="form-select" id="category_filter" style="font-weight: 600;">
+                                    <option value="">Toutes les catégories</option>
+                                    {% for nature in all_budget_natures %}
+                                        {% if nature != 'Entretien bâtiments administratifs' %}
+                                        <option value="{{ nature }}">{{ nature }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                    <optgroup label="🏢 Entretien bâtiments administratifs">
+                                        <option value="Articles de plomberies">└─ 🔧 Articles de plomberies</option>
+                                        <option value="Articles électriques">└─ ⚡ Articles électriques</option>
+                                        <option value="Articles de la peinture">└─ 🎨 Articles de la peinture</option>
+                                    </optgroup>
+                                </select>
+                                <div class="form-text mt-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Sélectionnez une catégorie pour filtrer les articles disponibles
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="item_id" class="form-label">Article *</label>
+                            <select class="form-select" id="item_id" name="item_id" required>
+                                <option value="">Sélectionner un article...</option>
+                                {% for item in items %}
+                                <option value="{{ item.id }}" 
+                                        data-current-stock="{{ item.quantity }}" 
+                                        data-unit="{{ item.unit }}" 
+                                        data-category="{{ item.category }}"
+                                        {{ 'selected' if request.args.get('item_id') == item.id|string }}>
+                                    {{ item.name }} ({{ item.sku }}) - Stock actuel: {{ item.quantity }} {{ item.unit }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">
+                                <span id="filtered-count"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="type" class="form-label">Type de Réception *</label>
+                            <select class="form-select" id="type" name="type" required>
+                                <option value="">Sélectionner le type...</option>
+                                <option value="reception">
+                                    <i class="fas fa-truck"></i> Réception de Fournitures
+                                </option>
+                                <option value="ajustement">
+                                    <i class="fas fa-edit"></i> Ajustement de Stock
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="quantity" class="form-label">Quantité *</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="quantity" name="quantity" min="1" required>
+                                <span class="input-group-text" id="unit-display">unité(s)</span>
+                            </div>
+                            <div class="form-text">
+                                <span id="stock-info"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="date_reception" class="form-label">Date de Réception <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="date_reception" name="date_reception" required>
+                            <div class="form-text">
+                                <i class="fas fa-calendar-alt me-1"></i>Date de la réception
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="reason" class="form-label">Fournisseurs <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="reason" name="reason" required
+                                   placeholder="Ex: Fournisseur A, Entreprise XYZ...">
+                        </div>
+                    </div>
+                    
+                    <!-- SECTION BUDGÉTAIRE -->
+                    <div class="alert alert-info" style="background: linear-gradient(135deg, rgba(13, 110, 253, 0.1) 0%, rgba(13, 202, 240, 0.1) 100%); border-left: 4px solid #0d6efd; margin-bottom: 1.5rem;">
+                        <h6 class="mb-3" style="color: #0d6efd; font-weight: 700;">
+                            <i class="fas fa-calculator me-2"></i>Informations Budgétaires
+                        </h6>
+                        
+                        <div class="row">
+                            <!-- Prix Unitaire HT -->
+                            <div class="col-md-3 mb-3">
+                                <label for="pu_ht" class="form-label">P.U HT (DH) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" min="0" class="form-control" id="pu_ht" name="pu_ht" required
+                                       placeholder="0.00">
+                                <div class="form-text">Prix unitaire HT</div>
+                            </div>
+                            
+                            <!-- Taux TVA -->
+                            <div class="col-md-3 mb-3">
+                                <label for="taux_tva" class="form-label">Taux TVA (%) <span class="text-danger">*</span></label>
+                                <select class="form-select" id="taux_tva" name="taux_tva" required>
+                                    <option value="20" selected>20%</option>
+                                    <option value="14">14%</option>
+                                    <option value="10">10%</option>
+                                    <option value="7">7%</option>
+                                    <option value="0">0% (Exonéré)</option>
+                                </select>
+                                <div class="form-text">Taux de TVA</div>
+                            </div>
+                            
+                            <!-- Prix Unitaire TTC (calculé) -->
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">P.U TTC (DH)</label>
+                                <input type="text" class="form-control" id="pu_ttc_display" readonly
+                                       style="background-color: #e9ecef; font-weight: 600; color: #0d6efd;"
+                                       value="0.00 DH">
+                                <div class="form-text">Calculé automatiquement</div>
+                            </div>
+                            
+                            <!-- Prix Total HT (calculé) -->
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">P.T HT (DH)</label>
+                                <input type="text" class="form-control" id="pt_ht_display" readonly
+                                       style="background-color: #e9ecef; font-weight: 600; color: #198754;"
+                                       value="0.00 DH">
+                                <div class="form-text">Total HT</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- Prix Total TTC (calculé) - MISE EN ÉVIDENCE -->
+                            <div class="col-md-12">
+                                <div class="alert alert-success mb-0" style="background: linear-gradient(135deg, rgba(25, 135, 84, 0.15) 0%, rgba(32, 201, 151, 0.15) 100%); border: 2px solid #198754; border-radius: 8px;">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="fas fa-money-bill-wave me-2" style="color: #198754; font-size: 1.3rem;"></i>
+                                            <strong style="font-size: 1.1rem; color: #198754;">Prix Total TTC:</strong>
+                                        </div>
+                                        <div>
+                                            <span id="pt_ttc_display" style="font-size: 1.8rem; font-weight: 900; color: #198754;">0.00 DH</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Informations sur l'article sélectionné -->
+                    <div id="item-info" class="alert" style="display: none; background: linear-gradient(135deg, rgba(32, 201, 151, 0.1) 0%, rgba(23, 162, 184, 0.1) 100%); border-left: 4px solid #20c997; padding: 1rem;">
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('receptions') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Retour
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-2"></i>Enregistrer la Réception
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const itemSelect = document.getElementById('item_id');
+    const categoryFilter = document.getElementById('category_filter');
+    const filteredCount = document.getElementById('filtered-count');
+    const typeSelect = document.getElementById('type');
+    const quantityInput = document.getElementById('quantity');
+    const unitDisplay = document.getElementById('unit-display');
+    const stockInfo = document.getElementById('stock-info');
+    const itemInfo = document.getElementById('item-info');
+    const currentStockSpan = document.getElementById('current-stock');
+    const newStockSpan = document.getElementById('new-stock');
+    const stockDiffSpan = document.getElementById('stock-diff');
+    
+    // ============================================
+    // FILTRAGE PAR CATÉGORIE
+    // ============================================
+    
+    // Sauvegarder toutes les options d'articles
+    const allItemOptions = Array.from(itemSelect.options).slice(1); // Exclure l'option vide
+    
+    function filterItemsByCategory() {
+        const selectedCategory = categoryFilter.value;
+        
+        // Réinitialiser le select des articles
+        itemSelect.innerHTML = '<option value="">Sélectionner un article...</option>';
+        
+        let visibleCount = 0;
+        
+        // Filtrer et ajouter les options
+        allItemOptions.forEach(option => {
+            const itemCategory = option.dataset.category;
+            
+            if (selectedCategory === '' || itemCategory === selectedCategory) {
+                itemSelect.appendChild(option.cloneNode(true));
+                visibleCount++;
+            }
+        });
+        
+        // Afficher le nombre d'articles filtrés
+        if (selectedCategory === '') {
+            filteredCount.innerHTML = `<i class="fas fa-list me-1"></i>${visibleCount} article(s) disponible(s)`;
+            filteredCount.style.color = '#6c757d';
+        } else {
+            filteredCount.innerHTML = `<i class="fas fa-filter me-1" style="color: #ffc107;"></i>${visibleCount} article(s) dans cette catégorie`;
+            filteredCount.style.color = '#ff6b35';
+            filteredCount.style.fontWeight = '600';
+        }
+        
+        // Réinitialiser la sélection
+        itemSelect.value = '';
+        itemInfo.style.display = 'none';
+        stockInfo.textContent = '';
+    }
+    
+    // Écouter les changements du filtre
+    categoryFilter.addEventListener('change', filterItemsByCategory);
+    
+    // Initialiser le compteur au chargement
+    filteredCount.innerHTML = `<i class="fas fa-list me-1"></i>${allItemOptions.length} article(s) disponible(s)`;
+    filteredCount.style.color = '#6c757d';
+    
+    function updateItemInfo() {
+        const selectedOption = itemSelect.options[itemSelect.selectedIndex];
+        if (selectedOption.value) {
+            const currentStock = parseInt(selectedOption.dataset.currentStock);
+            const unit = selectedOption.dataset.unit;
+            
+            unitDisplay.textContent = unit;
+            currentStockSpan.textContent = currentStock + ' ' + unit;
+            stockInfo.textContent = `Stock actuel: ${currentStock} ${unit}`;
+            itemInfo.style.display = 'block';
+            
+            updateStockCalculation();
+        } else {
+            itemInfo.style.display = 'none';
+            unitDisplay.textContent = 'unité(s)';
+            stockInfo.textContent = '';
+        }
+    }
+    
+    function updateStockCalculation() {
+        const selectedOption = itemSelect.options[itemSelect.selectedIndex];
+        const type = typeSelect.value;
+        const quantity = parseInt(quantityInput.value) || 0;
+        
+        if (selectedOption.value && type && quantity > 0) {
+            const currentStock = parseInt(selectedOption.dataset.currentStock);
+            const unit = selectedOption.dataset.unit;
+            let newStock;
+            let diff;
+            
+            if (type === 'reception') {
+                newStock = currentStock + quantity;
+                diff = '+' + quantity;
+                newStockSpan.className = 'text-success';
+                stockDiffSpan.className = 'text-success';
+            } else if (type === 'ajustement') {
+                newStock = quantity;
+                diff = quantity - currentStock;
+                if (diff > 0) {
+                    diff = '+' + diff;
+                    newStockSpan.className = 'text-success';
+                    stockDiffSpan.className = 'text-success';
+                } else if (diff < 0) {
+                    newStockSpan.className = 'text-warning';
+                    stockDiffSpan.className = 'text-warning';
+                } else {
+                    newStockSpan.className = 'text-muted';
+                    stockDiffSpan.className = 'text-muted';
+                }
+            }
+            
+            newStockSpan.textContent = newStock + ' ' + unit;
+            stockDiffSpan.textContent = diff + ' ' + unit;
+        } else {
+            newStockSpan.textContent = '-';
+            stockDiffSpan.textContent = '-';
+        }
+    }
+    
+    itemSelect.addEventListener('change', updateItemInfo);
+    typeSelect.addEventListener('change', updateStockCalculation);
+    quantityInput.addEventListener('input', updateStockCalculation);
+    
+    // Initialiser l'affichage si un article est déjà sélectionné
+    if (itemSelect.value) {
+        updateItemInfo();
+    }
+    
+    // Mise à jour du placeholder selon le type
+    typeSelect.addEventListener('change', function() {
+        const reasonInput = document.getElementById('reason');
+        if (this.value === 'reception') {
+            reasonInput.placeholder = 'Ex: Fournisseur A, Entreprise XYZ...';
+            quantityInput.placeholder = 'Quantité reçue';
+        } else if (this.value === 'ajustement') {
+            reasonInput.placeholder = 'Ex: Fournisseur B, Société ABC...';
+            quantityInput.placeholder = 'Nouvelle quantité totale';
+        }
+    });
+    
+    // ============================================
+    // CALCULS BUDGÉTAIRES AUTOMATIQUES
+    // ============================================
+    
+    const puHtInput = document.getElementById('pu_ht');
+    const tauxTvaSelect = document.getElementById('taux_tva');
+    const puTtcDisplay = document.getElementById('pu_ttc_display');
+    const ptHtDisplay = document.getElementById('pt_ht_display');
+    const ptTtcDisplay = document.getElementById('pt_ttc_display');
+    
+    function calculerPrixBudgetaires() {
+        const puHT = parseFloat(puHtInput.value) || 0;
+        const quantite = parseInt(quantityInput.value) || 0;
+        const tauxTVA = parseFloat(tauxTvaSelect.value) || 0;
+        
+        // Calculs
+        const ptHT = puHT * quantite;
+        const puTTC = puHT * (1 + tauxTVA / 100);
+        const ptTTC = ptHT * (1 + tauxTVA / 100);
+        
+        // Affichage avec formatage
+        puTtcDisplay.value = puTTC.toFixed(2) + ' DH';
+        ptHtDisplay.value = ptHT.toFixed(2) + ' DH';
+        ptTtcDisplay.textContent = ptTTC.toFixed(2) + ' DH';
+        
+        // Animation du prix total TTC
+        if (ptTTC > 0) {
+            ptTtcDisplay.style.animation = 'pulse 0.5s ease';
+            setTimeout(() => {
+                ptTtcDisplay.style.animation = '';
+            }, 500);
+        }
+    }
+    
+    // Écouter les changements pour recalculer automatiquement
+    puHtInput.addEventListener('input', calculerPrixBudgetaires);
+    quantityInput.addEventListener('input', function() {
+        updateStockCalculation();
+        calculerPrixBudgetaires();
+    });
+    tauxTvaSelect.addEventListener('change', calculerPrixBudgetaires);
+    
+    // Initialiser les calculs si des valeurs sont présentes
+    calculerPrixBudgetaires();
+    
+    // ============================================
+    // DÉFINIR LA DATE PAR DÉFAUT À AUJOURD'HUI
+    // ============================================
+    const dateReceptionInput = document.getElementById('date_reception');
+    if (dateReceptionInput && !dateReceptionInput.value) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        dateReceptionInput.value = `${year}-${month}-${day}`;
+    }
+});
+</script>
+{% endblock %}
